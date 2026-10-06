@@ -1,0 +1,379 @@
+{
+  "reise": {
+    "titel": "Demo-Reise Thailand",
+    "abflug": "2026-11-17T19:10:00.000Z",
+    "heimkehr": "2026-12-10T06:00:00.000Z",
+    "zeitzoneThailand": "UTC+7"
+  },
+  "orte": {
+    "bkk": {
+      "name": "Bangkok",
+      "c": "var(--p-bkk)"
+    },
+    "samui": {
+      "name": "Koh Samui",
+      "c": "var(--p-samui)"
+    },
+    "tao": {
+      "name": "Koh Tao",
+      "c": "var(--p-tao)"
+    },
+    "aonang": {
+      "name": "Ao Nang",
+      "c": "var(--p-aonang)"
+    },
+    "travel": {
+      "name": "Reisetag",
+      "c": "var(--p-travel)"
+    }
+  },
+  "tage": [
+    {
+      "d": "2026-11-17",
+      "p": "travel",
+      "t": "Frankfurt → Bangkok",
+      "prog": "Abflug FRA 20:10 (Demo-Flug DX100)",
+      "tr": "Demo Airlines DX100\nZug zum Flughafen nehmen",
+      "stay": "Im Flieger",
+      "note": "Beispiel: Koffer bis Bangkok durchchecken lassen"
+    },
+    {
+      "d": "2026-11-18",
+      "p": "bkk",
+      "t": "Ankommen in Bangkok",
+      "prog": "Ankunft BKK 13:30 · ausruhen, Nachtmarkt",
+      "tr": "Flughafen → Hotel: Airport Rail Link",
+      "stay": "Musterhotel Sukhumvit (Demo)",
+      "ci": "Check-in ab 14:00",
+      "note": "Jetlag: bis abends wach bleiben"
+    },
+    {
+      "d": "2026-11-19",
+      "p": "bkk",
+      "t": "Bangkok",
+      "prog": "Tempel & Chinatown",
+      "stay": "Musterhotel Sukhumvit (Demo)"
+    },
+    {
+      "d": "2026-11-20",
+      "p": "travel",
+      "t": "Bangkok → Koh Samui",
+      "prog": "Reisetag",
+      "tr": "Hotel → Flughafen BKK\nDemo Air DA123 · BKK 15:00 → USM 16:05\nFlughafen → Hotel: Taxi",
+      "stay": "Palmenbungalow Beispiel",
+      "ci": "Musterhotel: Check-out vor 12:00\nPalmenbungalow: Check-in 14:00–22:00",
+      "note": "Freigepäck im Beispiel: 20 kg"
+    },
+    {
+      "d": "2026-11-21",
+      "p": "samui",
+      "t": "Koh Samui",
+      "stay": "Palmenbungalow Beispiel",
+      "note": "Ausflug-Idee: Bootstour Nationalpark"
+    },
+    {
+      "d": "2026-11-22",
+      "p": "samui",
+      "t": "Koh Samui",
+      "stay": "Palmenbungalow Beispiel"
+    },
+    {
+      "d": "2026-11-23",
+      "p": "samui",
+      "t": "Koh Samui",
+      "prog": "Strand & Wasserfall",
+      "stay": "Palmenbungalow Beispiel"
+    },
+    {
+      "d": "2026-11-24",
+      "p": "samui",
+      "t": "Koh Samui",
+      "stay": "Palmenbungalow Beispiel"
+    },
+    {
+      "d": "2026-11-25",
+      "p": "samui",
+      "t": "Letzter Tag Koh Samui",
+      "stay": "Palmenbungalow Beispiel",
+      "note": "Sachen für die Fähre packen"
+    },
+    {
+      "d": "2026-11-26",
+      "p": "travel",
+      "t": "Koh Samui → Koh Tao · Kurstag 1",
+      "prog": "Fähre, nachmittags Einführung Tauchkurs",
+      "tr": "Taxi zum Pier\nBeispiel-Fähre 09:00 → 11:00",
+      "stay": "Tauchschule Musterriff – Schlafsaal",
+      "ci": "Palmenbungalow: Check-out bis 11:00\nMusterriff: Check-in ab 13:00",
+      "note": "Passfotos mitnehmen"
+    },
+    {
+      "d": "2026-11-27",
+      "p": "tao",
+      "t": "Kurstag 2",
+      "prog": "Theorie und Pool",
+      "stay": "Tauchschule Musterriff – Schlafsaal"
+    },
+    {
+      "d": "2026-11-28",
+      "p": "tao",
+      "t": "Kurstag 3",
+      "prog": "Prüfung, nachmittags Bootstauchgänge",
+      "stay": "Tauchschule Musterriff – Schlafsaal"
+    },
+    {
+      "d": "2026-11-29",
+      "p": "tao",
+      "t": "Kurstag 4 · Kursende",
+      "prog": "Bootstauchgänge, danach Urkunde",
+      "stay": "Tauchschule Musterriff – Schlafsaal"
+    },
+    {
+      "d": "2026-11-30",
+      "p": "tao",
+      "t": "Koh Tao entspannen",
+      "prog": "Entspannen",
+      "stay": "Tauchschule Musterriff – Doppelzimmer",
+      "ci": "Zimmerwechsel"
+    },
+    {
+      "d": "2026-12-01",
+      "p": "tao",
+      "t": "Koh Tao entspannen",
+      "prog": "Schnorcheln",
+      "stay": "Tauchschule Musterriff – Doppelzimmer",
+      "note": "Restbetrag bezahlen (Beispiel: 10.000 THB)"
+    },
+    {
+      "d": "2026-12-02",
+      "p": "travel",
+      "t": "Koh Tao → Ao Nang",
+      "prog": "Reisetag",
+      "tr": "Beispiel-Kombiticket Bus + Fähre 08:30 → 16:00\nTransfer zum Hotel",
+      "stay": "Strandhotel Muster",
+      "ci": "Check-in ab 14:00"
+    },
+    {
+      "d": "2026-12-03",
+      "p": "aonang",
+      "t": "Ao Nang",
+      "stay": "Strandhotel Muster",
+      "note": "Ausflugsideen: Inselhopping, Kajak"
+    },
+    {
+      "d": "2026-12-04",
+      "p": "aonang",
+      "t": "Ao Nang",
+      "stay": "Strandhotel Muster"
+    },
+    {
+      "d": "2026-12-05",
+      "p": "aonang",
+      "t": "Ao Nang",
+      "stay": "Strandhotel Muster"
+    },
+    {
+      "d": "2026-12-06",
+      "p": "aonang",
+      "t": "Ao Nang",
+      "stay": "Strandhotel Muster"
+    },
+    {
+      "d": "2026-12-07",
+      "p": "aonang",
+      "t": "Letzter Tag Ao Nang",
+      "stay": "Strandhotel Muster"
+    },
+    {
+      "d": "2026-12-08",
+      "p": "travel",
+      "t": "Krabi → Bangkok",
+      "prog": "Reisetag",
+      "tr": "Hotel → Flughafen Krabi\nDemo Air DA456 · KBV 10:00 → BKK 11:20\nFlughafen → Hotel",
+      "stay": "Hotel Bangkok (Demo)",
+      "ci": "Strandhotel: Check-out vor 11:00"
+    },
+    {
+      "d": "2026-12-09",
+      "p": "bkk",
+      "t": "Bangkok → Abflug",
+      "prog": "Shopping, Geschenke · abends zum Flughafen",
+      "tr": "21:00 Taxi zum Flughafen\nDemo Airlines DX101 · BKK 23:55",
+      "stay": "Im Flieger"
+    },
+    {
+      "d": "2026-12-10",
+      "p": "travel",
+      "t": "Zuhause",
+      "prog": "Ankunft FRA 07:00",
+      "tr": "Zug nach Hause"
+    }
+  ],
+  "buchungen": [
+    {
+      "leistung": "Frankfurt ⇄ Bangkok",
+      "ueber": "Demo Airlines",
+      "storno": "nur Umbuchung",
+      "stornoStatus": "crit",
+      "eur": 799
+    },
+    {
+      "leistung": "Musterhotel Sukhumvit (18.–20.11.)",
+      "ueber": "Beispielportal",
+      "storno": "frei bis 14.11. 23:59",
+      "stornoStatus": "ok",
+      "eur": 60
+    },
+    {
+      "leistung": "Palmenbungalow Beispiel (20.–26.11.)",
+      "ueber": "Beispielportal",
+      "storno": "nicht erstattbar",
+      "stornoStatus": "crit",
+      "eur": 210
+    },
+    {
+      "leistung": "Tauchkurs + Zimmer Musterriff",
+      "ueber": "vor Ort",
+      "storno": "Anzahlung geleistet",
+      "stornoStatus": "mut",
+      "eur": 350
+    },
+    {
+      "leistung": "Hotel Bangkok letzte Nacht",
+      "ueber": "",
+      "storno": "noch offen",
+      "stornoStatus": "warn",
+      "eur": null
+    }
+  ],
+  "fristen": [
+    {
+      "t": "2026-10-20T23:59+02:00",
+      "w": "Reiseversicherung abschließen (Demo)",
+      "h": "Beispiel-Frist",
+      "s": "crit"
+    },
+    {
+      "t": "2026-11-01T23:59+01:00",
+      "w": "Reiseapotheke besorgen",
+      "h": "damit vor der Abreise nichts stresst",
+      "s": "warn"
+    },
+    {
+      "t": "2026-11-14T17:59+01:00",
+      "w": "Musterhotel: letzter Tag kostenlos stornieren",
+      "h": "23:59 Ortszeit",
+      "s": "warn"
+    },
+    {
+      "t": "2026-11-15T09:00+01:00",
+      "w": "Einreisekarte online ausfüllen",
+      "h": "frühestens 3 Tage vor Ankunft",
+      "s": "warn"
+    },
+    {
+      "t": "2026-11-16T20:10+01:00",
+      "w": "Online-Check-in öffnet",
+      "h": "Sitzplatz sichern",
+      "s": "ok"
+    },
+    {
+      "t": "2026-11-24T10:00+01:00",
+      "w": "Fähre: Storno-Frist (Demo)",
+      "h": "10:00 dt. Zeit",
+      "s": "warn"
+    },
+    {
+      "t": "2026-12-09T17:55+01:00",
+      "w": "Rückflug ab BKK",
+      "h": "23:55 Ortszeit",
+      "s": "ok"
+    }
+  ],
+  "checkliste": [
+    {
+      "gruppe": "Flug & Einreise",
+      "punkte": [
+        {
+          "text": "Flug buchen",
+          "notiz": "Beispiel",
+          "erledigt": true
+        },
+        {
+          "text": "Reisepass prüfen",
+          "notiz": "> 6 Monate gültig",
+          "erledigt": false
+        },
+        {
+          "text": "Einreisekarte ausfüllen",
+          "notiz": "ab 3 Tage vor Ankunft",
+          "erledigt": false
+        }
+      ]
+    },
+    {
+      "gruppe": "Gepäck",
+      "punkte": [
+        {
+          "text": "Tagesrucksack",
+          "notiz": "",
+          "erledigt": false
+        },
+        {
+          "text": "Dry Bag",
+          "notiz": "",
+          "erledigt": false
+        },
+        {
+          "text": "Powerbank",
+          "notiz": "Nur ins Handgepäck",
+          "erledigt": false
+        }
+      ]
+    }
+  ],
+  "tipps": [
+    {
+      "gruppe": "Das Wichtigste",
+      "tipps": [
+        {
+          "titel": "In THB zahlen",
+          "text": "Am Automaten immer „in THB“ wählen."
+        },
+        {
+          "titel": "Tempel",
+          "text": "Knie und Schultern bedeckt, Schuhe aus."
+        }
+      ]
+    }
+  ],
+  "budget": {
+    "tagesbudgetPlan": "Beispiel: ca. 50 €/Tag",
+    "kostenSchaetzung": {
+      "sparsam": 800,
+      "normal": 1200
+    },
+    "wechselkursTHBproEUR": 37.9,
+    "reisetage": 22,
+    "kategorien": [
+      "Essen & Trinken",
+      "Transport",
+      "Ausflüge",
+      "Unterkunft vor Ort",
+      "SIM/Wäsche/Drogerie",
+      "Geldautomat",
+      "Geschenke",
+      "Sonstiges"
+    ]
+  },
+  "versicherung": {
+    "stand": "Demo: Beispielversicherung",
+    "notrufMDT": "+49 000 0000000 (Demo)"
+  },
+  "notfall": {
+    "touristenpolizei": "1155",
+    "krankenwagen": "1669",
+    "polizei": "191",
+    "karteSperren": "+49 116 116"
+  }
+}

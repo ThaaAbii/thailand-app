@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Thailand 2026</title>
+  <meta name="description" content="Persönliche Reise-App für Thailand – funktioniert offline.">
+  <meta name="theme-color" content="#0b6e78">
+  <meta name="robots" content="noindex">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="css/app.css">
+  <script>
+    try {
+      var t = localStorage.getItem('thema');
+      if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+    } catch (e) {}
+  </script>
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <header class="kopf">
+    <span class="kopf__titel" id="kopf-titel">Thailand 2026</span>
+    <span class="kopf__status" id="kopf-status" hidden></span>
+  </header>
+
+  <main id="inhalt" class="inhalt">
+    <p class="laden">Lädt …</p>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <nav class="navi" aria-label="Hauptnavigation">
+    <a href="#heute" data-nav="heute">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>
+      <span>Heute</span>
+    </a>
+    <a href="#daten" data-nav="daten">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5.5" rx="7.5" ry="3"/><path d="M4.5 5.5v13c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3v-13M4.5 12c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3"/></svg>
+      <span>Daten</span>
+    </a>
+  </nav>
+
+  <noscript><p class="karte">Bitte JavaScript aktivieren, damit die App funktioniert.</p></noscript>
+</body>
+</html>
