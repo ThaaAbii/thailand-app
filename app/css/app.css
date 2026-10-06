@@ -498,3 +498,196 @@ h2.gruppenkopf { margin-bottom: 8px; }
 .tipps { margin: 0; display: flex; flex-direction: column; gap: 12px; }
 .tipps dt { font-weight: 700; }
 .tipps dd { margin: 2px 0 0; color: var(--leise); }
+
+/* ---------- Phase 3: App-Gefühl ---------- */
+html {
+  touch-action: manipulation;          /* kein Doppeltipp-Zoom */
+  overscroll-behavior: none;           /* kein Gummiband / Pull-to-refresh */
+}
+body {
+  overscroll-behavior-y: none;
+  -webkit-user-select: none;
+  user-select: none;                   /* Texte nicht versehentlich markieren */
+  -webkit-touch-callout: none;
+}
+input, textarea, select, .erlaube-auswahl { -webkit-user-select: text; user-select: text; }
+img, svg, a { -webkit-user-drag: none; }
+button, a, label, summary { -webkit-tap-highlight-color: transparent; }
+.knopf, .kachel, .navi a, .chip span, .satz, .zahl, .notruf, .station, .tabs a, .segment__teil span {
+  transition: transform 0.08s ease, background-color 0.15s ease;
+}
+.kachel:active, .satz:active, .zahl:active, .notruf:active, .station:active, .chip span:active { transform: scale(0.97); }
+.navi a:active svg { transform: scale(0.9); }
+
+.inhalt.einblenden { animation: einblenden 0.18s ease-out; }
+@keyframes einblenden { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .inhalt.einblenden, .kartenort__puls { animation: none !important; }
+  * { transition: none !important; }
+}
+
+.kopf__rechts { display: flex; align-items: center; gap: 8px; }
+.kopf__sos {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 48px; min-height: 34px; padding: 0 12px; border-radius: 99px;
+  background: #d32f2f; color: #fff; font-weight: 800; font-size: 0.85rem; letter-spacing: 0.06em; text-decoration: none;
+}
+.banner--install { display: flex; flex-direction: column; gap: 6px; }
+.banner--install .knopfreihe { margin-top: 0; }
+
+/* ---------- Ausgaben ---------- */
+.status { font-size: 0.85rem; font-weight: 700; white-space: nowrap; }
+.status--gruen { color: var(--gruen); }
+.status--orange { color: var(--orange); }
+.status--rot { color: var(--rot); }
+.text-rot { color: var(--rot); }
+.budgetkarte h2 { margin: 0; }
+.budget__zahl { font-size: 1.5rem; margin: 6px 0 2px; }
+.budget__zahl .leise { font-size: 1rem; }
+.budgetkarte .knopf--haupt { text-decoration: none; }
+
+.betrag { display: flex; gap: 10px; align-items: stretch; }
+.betrag__feld {
+  flex: 1; min-width: 0; font: inherit; font-size: 2.2rem; font-weight: 800; font-variant-numeric: tabular-nums;
+  padding: 8px 14px; border-radius: 14px; border: 2px solid var(--linie); background: var(--bg); color: var(--text);
+}
+.betrag__feld:focus { outline: none; border-color: var(--primaer); }
+.waehrung { display: flex; flex-direction: column; gap: 4px; }
+.waehrung label { flex: 1; }
+.waehrung input, .chip input { position: absolute; opacity: 0; pointer-events: none; }
+.waehrung span {
+  display: flex; align-items: center; justify-content: center; width: 52px; height: 100%; min-height: 34px;
+  border-radius: 10px; border: 1px solid var(--linie); font-weight: 800; font-size: 1.1rem; cursor: pointer;
+}
+.waehrung input:checked + span { background: var(--primaer); color: var(--primaer-text); border-color: transparent; }
+#umrechnung { margin: 4px 2px 8px; min-height: 1.3em; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.chip span {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 42px; padding: 6px 12px;
+  border-radius: 99px; border: 1px solid var(--linie); background: var(--karte); font-weight: 600; font-size: 0.92rem; cursor: pointer;
+}
+.chip input:checked + span { background: var(--primaer); color: var(--primaer-text); border-color: transparent; }
+.chip input:focus-visible + span, .waehrung input:focus-visible + span { outline: 2px solid var(--akzent); }
+.eingabe--voll { width: 100%; }
+.eingabe-karte .knopfreihe { align-items: flex-end; }
+.eingabe-karte .feld { flex: 1 1 140px; }
+.knopf--speichern { flex: 2 1 160px !important; width: auto; margin-top: 0; }
+.feld--abstand { margin-top: 12px; }
+
+.kennzahlen { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 12px; }
+.kennzahlen > div { display: flex; flex-direction: column; }
+.kennzahlen small { color: var(--leise); font-weight: 600; }
+.kennzahlen b { font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+
+.balkenliste { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.balkenliste__kopf { display: flex; justify-content: space-between; gap: 10px; font-size: 0.92rem; }
+.balkenliste__kopf b { font-variant-numeric: tabular-nums; }
+.balkenliste__spur { position: relative; height: 12px; margin-top: 4px; border-radius: 4px; background: var(--linie); }
+.balkenliste__wert { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: var(--primaer); }
+.balkenliste__marke { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--text); opacity: 0.7; border-radius: 1px; }
+
+.tagkopf { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--leise); margin: 14px 0 2px; }
+.tagkopf:first-of-type { margin-top: 0; }
+.ausgabenliste { list-style: none; margin: 0; padding: 0; }
+.ausgabe { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--linie); }
+.ausgabe:first-child { border-top: 0; }
+.ausgabe__icon { font-size: 1.3rem; width: 1.7rem; text-align: center; flex: none; }
+.ausgabe__text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ausgabe__text b { font-weight: 600; overflow-wrap: anywhere; }
+.ausgabe__text small, .ausgabe__betrag small { color: var(--leise); font-size: 0.82rem; }
+.ausgabe__betrag { flex: none; display: flex; flex-direction: column; align-items: flex-end; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* ---------- Karte ---------- */
+.karte--karte { padding: 10px; }
+.landkarte { display: block; width: 100%; height: auto; border-radius: 12px; touch-action: manipulation; }
+.meer { fill: #cfe9ee; }
+.land { fill: #efe7d4; stroke: #c9bc9c; stroke-width: 1; stroke-linejoin: round; }
+.meername { fill: #5b8f99; font-size: 13px; font-style: italic; letter-spacing: 0.05em; }
+.route { fill: none; stroke-width: 3.5; stroke-linecap: round; }
+.route--flug { stroke: #6d4bc3; stroke-dasharray: 2 8; }
+.route--faehre { stroke: #0f8b8d; }
+.route--kombi { stroke: #d17a00; stroke-dasharray: 10 6; }
+.route--bus { stroke: #d17a00; }
+.route--sonst { stroke: #7b8190; stroke-dasharray: 4 4; }
+.kartenort { cursor: pointer; outline: none; }
+.kartenort__ziel { fill: transparent; }
+.kartenort__punkt { fill: var(--ort); stroke: #fff; stroke-width: 3; }
+.kartenort text { font-size: 15px; font-weight: 700; fill: #1d2327; paint-order: stroke; stroke: #fff; stroke-width: 4px; stroke-linejoin: round; }
+.kartenort--gewaehlt .kartenort__punkt, .kartenort:focus-visible .kartenort__punkt { stroke: #1d2327; }
+.kartenort__puls { fill: var(--ort); opacity: 0.4; transform-box: fill-box; transform-origin: center; animation: puls 1.6s ease-out infinite; }
+@keyframes puls { from { transform: scale(1); opacity: 0.5; } to { transform: scale(2.6); opacity: 0; } }
+:root[data-theme="dark"] .meer { fill: #16323a; }
+:root[data-theme="dark"] .land { fill: #2b3134; stroke: #3d4448; }
+:root[data-theme="dark"] .meername { fill: #6fa3ad; }
+:root[data-theme="dark"] .kartenort text { fill: #e8ecee; stroke: #1b2327; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .meer { fill: #16323a; }
+  :root:not([data-theme="light"]) .land { fill: #2b3134; stroke: #3d4448; }
+  :root:not([data-theme="light"]) .meername { fill: #6fa3ad; }
+  :root:not([data-theme="light"]) .kartenort text { fill: #e8ecee; stroke: #1b2327; }
+}
+.kartenlegende { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 10px 4px 4px; }
+.kartenlegende span, .station__weiter { display: inline-flex; align-items: center; gap: 6px; }
+.route-muster { display: inline-block; width: 26px; height: 0; border-top: 3.5px solid; }
+.route-muster--flug { border-color: #6d4bc3; border-top-style: dotted; }
+.route-muster--faehre { border-color: #0f8b8d; }
+.route-muster--kombi { border-color: #d17a00; border-top-style: dashed; }
+.route-muster--bus { border-color: #d17a00; }
+.route-muster--sonst { border-color: #7b8190; border-top-style: dashed; }
+.punkt-heute { width: 12px; height: 12px; border-radius: 50%; background: var(--primaer); box-shadow: 0 0 0 4px color-mix(in srgb, var(--primaer) 30%, transparent); }
+.karte--karte > .leise { margin: 4px; }
+
+.stationen { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.stationen li { display: flex; flex-direction: column; }
+.station {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; padding: 10px 12px; min-height: 56px;
+  border: 1px solid var(--linie); border-left: 6px solid var(--ort); border-radius: 12px; background: var(--karte); color: var(--text); font: inherit; text-align: left; cursor: pointer;
+}
+.station--heute { box-shadow: 0 0 0 2px var(--ort); }
+.station__weiter { margin: 6px 0 6px 18px; padding-left: 12px; border-left: 2px dashed var(--linie); color: var(--leise); min-height: 22px; }
+
+/* ---------- Thai ---------- */
+.segment--4 .segment__teil span { font-size: 0.9rem; }
+.saetze { display: flex; flex-direction: column; gap: 8px; }
+.satz {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; padding: 12px 14px;
+  border-radius: 14px; border: 1px solid var(--linie); background: var(--bg); color: var(--text); font: inherit; text-align: left; cursor: pointer;
+}
+.satz__de { font-weight: 700; }
+.satz__thai { font-size: 1.35rem; line-height: 1.5; }
+.satz__laut { color: var(--leise); font-size: 0.92rem; font-style: italic; }
+.zahlenraster { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.zahl {
+  display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 10px 4px; min-height: 64px;
+  border-radius: 12px; border: 1px solid var(--linie); background: var(--bg); color: var(--text); font: inherit; cursor: pointer;
+}
+.zahl b { font-size: 1.1rem; }
+.zahl small { color: var(--leise); font-style: italic; }
+
+.vollbild {
+  position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  padding: max(24px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom));
+  background: #fffdf5; color: #111; text-align: center; animation: einblenden 0.15s ease-out;
+}
+.vollbild__thai { font-size: clamp(2.6rem, 14vw, 7rem); line-height: 1.35; font-weight: 700; margin: 0; overflow-wrap: anywhere; }
+.vollbild__laut { font-size: 1.4rem; font-style: italic; color: #555; margin: 0; }
+.vollbild__de { font-size: 1.2rem; color: #333; margin: 0; }
+.vollbild__hinweis { position: absolute; bottom: max(16px, env(safe-area-inset-bottom)); font-size: 0.85rem; color: #888; margin: 0; }
+
+/* ---------- Notfall ---------- */
+.kachel--notfall { border-color: color-mix(in srgb, var(--rot) 45%, var(--linie)); background: var(--rot-bg); }
+.notrufe { display: flex; flex-direction: column; gap: 8px; }
+.notruf {
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px; min-height: 64px; border-radius: 14px;
+  background: var(--bg); border: 1px solid var(--linie); color: var(--text); text-decoration: none;
+}
+.notruf__icon { font-size: 1.5rem; flex: none; }
+.notruf__text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.notruf__text small { color: var(--leise); font-weight: 400; }
+.notruf__nummer { font-weight: 800; font-size: 1.15rem; color: var(--rot); font-variant-numeric: tabular-nums; }
+.notruf__anruf { flex: none; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--gruen-bg); font-size: 1.2rem; }
+.notruf--gross { background: var(--rot-bg); border-color: color-mix(in srgb, var(--rot) 40%, transparent); }
+.notruf--gross .notruf__nummer { font-size: 1.5rem; }
+.unterkunft-gross { font-size: 1.3rem; font-weight: 700; margin: 0; }
+.maps { margin-left: 38px; }

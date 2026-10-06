@@ -6,12 +6,14 @@ import {
 import { e, zeilen, ortInfo } from './ui.js';
 import { zeile, fristHtml, ortChip, balken } from './bausteine.js';
 import { checklistenGruppen, fortschritt, packSummen, packWarnungen, formatKg } from './listenlogik.js';
+import { heuteKarte } from './ausgaben.js';
+import { mapsLink } from './karte.js';
 
 export function renderHeute(daten, jetzt, eigene = {}) {
   const ph = reisePhase(daten, jetzt);
   if (ph.phase === 'vorher') return vorher(daten, ph, jetzt, eigene);
   if (ph.phase === 'nachher') return nachher(daten, ph);
-  return unterwegs(daten, ph, jetzt);
+  return unterwegs(daten, ph, jetzt, eigene);
 }
 
 /** Aktualisiert Countdown-Zahlen und Uhren jede Sekunde, ohne die Seite neu aufzubauen. */
@@ -61,7 +63,7 @@ function vorher(daten, ph, jetzt, eigene) {
   `;
 }
 
-function unterwegs(daten, ph, jetzt) {
+function unterwegs(daten, ph, jetzt, eigene) {
   const t = ph.tag;
   const ort = ortInfo(daten, t?.p);
   const tz = ph.tz;
@@ -88,16 +90,19 @@ function unterwegs(daten, ph, jetzt) {
       ${zeile('🗓️', 'Programm', t.prog)}
       ${zeile('🚐', 'Transport heute', t.tr, true)}
       ${zeile('🛏️', 'Unterkunft', t.stay)}
+      ${t.stay && !/flieger/i.test(t.stay) ? `<a class="mehrlink maps" href="${mapsLink(`${t.stay} ${ort.name}`)}" target="_blank" rel="noopener">📍 Unterkunft in Google Maps</a>` : ''}
       ${zeile('🔑', 'Check-in / Check-out', t.ci, true)}
       ${t.note ? `<div class="notiz"><span aria-hidden="true">📝</span><div>${zeilen(t.note).map(e).join('<br>')}</div></div>` : ''}
       ${!t.prog && !t.tr && !t.stay && !t.ci && !t.note ? '<p class="leise">Für heute ist nichts eingetragen – genieß den Tag!</p>' : ''}
     </section>` : `
     <section class="karte"><p class="leise">Für ${e(formatTag(ph.datum))} gibt es keinen Eintrag im Fahrplan.</p></section>`;
 
+  const imLand = ph.label !== 'Abreisetag' && ph.label !== 'Heimreisetag';
   return `
     ${kopf}
     ${abflugBald}
     ${details}
+    ${imLand ? heuteKarte(daten, eigene, ph.datum, { mitLink: true }) : ''}
     ${uhren(jetzt)}
     ${bald.length ? `
     <section class="karte">

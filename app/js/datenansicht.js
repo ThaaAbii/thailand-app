@@ -44,6 +44,14 @@ export function renderDaten(s) {
       ${s.kannTeilen ? '<p class="leise klein">„Teilen“ eignet sich z. B. zum Speichern in Google Drive oder zum Mailen an dich selbst.</p>' : ''}
     </section>
 
+    ${s.installiert ? '' : `
+    <section class="karte">
+      <h2>Als App installieren</h2>
+      ${s.kannInstallieren
+        ? '<p>Mit eigenem Symbol auf dem Startbildschirm, im Vollbild und offline.</p><button class="knopf knopf--haupt" data-aktion="installieren">📲 Jetzt installieren</button>'
+        : '<p>In Chrome oben rechts auf <b>⋮</b> tippen und <b>„App installieren“</b> bzw. <b>„Zum Startbildschirm hinzufügen“</b> wählen.</p>'}
+    </section>`}
+
     <section class="karte">
       <h2>Darstellung</h2>
       <div class="segment" role="radiogroup" aria-label="Farbschema">

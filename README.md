@@ -12,9 +12,13 @@ Sie werden in der App auf dem Handy importiert und bleiben dort (IndexedDB). Im 
 - ✅ Phase 1: Grundgerüst (offline, installierbar), JSON-Import/Export, Heute-Ansicht mit Countdown
 - ✅ Phase 2: Fahrplan, Fristen (rot ≤ 7 / orange ≤ 21 Tage), Checkliste, Packliste mit Gewicht;
   dazu Buchungen, Tipps und ein Vorbereitungs-Überblick auf der Heute-Seite
-- ⏳ Phase 3–4: siehe `CLAUDE.md`
+- ✅ Phase 3: Ausgaben-Tracker in Baht (Kurs automatisch von der EZB via frankfurter.dev, Reserve open.er-api.com,
+  offline der zuletzt geholte Kurs; Tagesbudget mit Ampel; Auswertung pro Tag/Kategorie/Ort; CSV-Export),
+  Offline-Routenkarte (SVG), Thai-Spickzettel mit Vollbild-Zeigen, Notfall-Seite (SOS-Knopf oben rechts)
+- ✅ App-Gefühl: kein Zoom, kein Pull-to-refresh, kein versehentliches Markieren, Installieren-Knopf, App-Kurzbefehle
+- ⏳ Phase 4: siehe `CLAUDE.md`
 
-Eigene Einträge (Häkchen, eigene Checklisten-Punkte, Packliste) liegen in IndexedDB unter `eigene`
+Eigene Einträge (Häkchen, eigene Checklisten-Punkte, Packliste, Ausgaben, Einstellungen, zuletzt geholter Kurs) liegen in IndexedDB unter `eigene`
 und sind im Backup-Export unter `_app.eigene` enthalten.
 
 ## Aufbau

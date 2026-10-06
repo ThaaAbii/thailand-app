@@ -2,8 +2,12 @@
 import { reisePhase, tagLabel, formatTag } from './zeit.js';
 import { e, ortInfo } from './ui.js';
 import { zeile, ortChip } from './bausteine.js';
+import { mapsLink } from './karte.js';
+import { gueltigeAusgaben, inThb, formatThb } from './ausgabenlogik.js';
 
-export function renderPlan(daten, jetzt) {
+export function renderPlan(daten, jetzt, eigene = {}) {
+  const ausgegeben = new Map();
+  for (const a of gueltigeAusgaben(eigene)) ausgegeben.set(a.d, (ausgegeben.get(a.d) ?? 0) + inThb(a));
   const ph = reisePhase(daten, jetzt);
   if (!ph.tage.length) return '<h1 class="seitentitel">Fahrplan</h1><section class="karte"><p class="leise">Kein Fahrplan vorhanden.</p></section>';
 
@@ -25,6 +29,7 @@ export function renderPlan(daten, jetzt) {
             <span class="plantag__label">${heute ? '<b>Heute</b> · ' : ''}${e(tagLabel(ph, t.d).label)}</span>
             <strong>${e(t.t || ort.name)}</strong>
             ${t.stay ? `<span class="plantag__stay">🛏️ ${e(t.stay)}</span>` : ''}
+            ${ausgegeben.has(t.d) ? `<span class="plantag__stay">💸 ${formatThb(ausgegeben.get(t.d))} ausgegeben</span>` : ''}
           </span>
           <span class="plantag__icons" aria-hidden="true">${hinweise}</span>
         </summary>
@@ -33,6 +38,7 @@ export function renderPlan(daten, jetzt) {
           ${zeile('🗓️', 'Programm', t.prog)}
           ${zeile('🚐', 'Transport', t.tr, true)}
           ${zeile('🛏️', 'Unterkunft', t.stay)}
+          ${t.stay && !/flieger/i.test(t.stay) ? `<a class="mehrlink" href="${mapsLink(`${t.stay} ${ort.name}`)}" target="_blank" rel="noopener">📍 In Google Maps öffnen</a>` : ''}
           ${zeile('🔑', 'Check-in / Check-out', t.ci, true)}
           ${zeile('📝', 'Notiz', t.note)}
           ${!t.prog && !t.tr && !t.stay && !t.ci && !t.note ? '<p class="leise">Nichts eingetragen – freier Tag.</p>' : ''}
