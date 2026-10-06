@@ -7,8 +7,9 @@ import { e, zeilen, ortInfo } from './ui.js';
 import { liste, abschnitt, fristZeile, held } from './bausteine.js';
 import { checklistenGruppen, fortschritt, packSummen, packWarnungen, formatKg } from './listenlogik.js';
 import { tagesbudgetEur, gueltigeAusgaben, inEur, inThb, budgetStatus, STATUS_TEXT, formatThb } from './ausgabenlogik.js';
-import { mapsLink } from './karte.js';
 import { ideenFuerOrt } from './ideen.js';
+import { fluegeAm, unterkunftDetails } from './anpassungen.js';
+import { flugZeile } from './details.js';
 
 export function renderHeute(daten, jetzt, eigene = {}) {
   const ph = reisePhase(daten, jetzt);
@@ -98,6 +99,9 @@ function unterwegs(daten, ph, jetzt, eigene) {
 
   const transport = zeilen(t?.tr);
   const stay = t?.stay && !/flieger/i.test(t.stay) ? t.stay : null;
+  const det = stay ? unterkunftDetails(eigene, stay) : {};
+  const stayUnter = [det.zimmer && `Zimmer ${det.zimmer}`, ...zeilen(t?.ci)].filter(Boolean).join(' · ');
+  const fluege = fluegeAm(eigene, ph.datum);
 
   const ausgaben = gueltigeAusgaben(eigene).filter((a) => a.d === ph.datum);
   const eur = ausgaben.reduce((s, a) => s + inEur(a), 0);
@@ -120,8 +124,9 @@ function unterwegs(daten, ph, jetzt, eigene) {
     ${kopf}
     ${countdownAbflug}
     ${transport.length ? abschnitt('Unterwegs heute', `<ul class="schritte">${transport.map((x) => `<li>${e(x)}</li>`).join('')}</ul>`) : ''}
+    ${fluege.length ? abschnitt('Flug heute', liste(fluege.map((f) => flugZeile(f, jetzt)))) : ''}
     ${abschnitt('Heute', liste([
-      stay ? { href: mapsLink(`${stay} ${ort.name}`), extern: true, icon: '🛏️', titel: stay, unter: zeilen(t.ci).join(' · ') || 'In Google Maps öffnen' } : null,
+      stay ? { href: `#tag/${ph.datum}`, icon: '🛏️', titel: stay, unter: stayUnter || 'Hotel-Details & Karte' } : null,
       !stay && t?.ci ? { icon: '🔑', titel: zeilen(t.ci).join(' · ') } : null,
       t?.prog && !transport.length ? { icon: '🗓️', titel: t.prog } : null,
       imLand ? { href: '#ausgaben', icon: '💸', titel: 'Ausgaben', unter: thb ? `${STATUS_TEXT[status].icon} ${STATUS_TEXT[status].text}` : 'Noch nichts eingetragen', wert: thb ? formatThb(thb) : '＋' } : null,
@@ -135,7 +140,7 @@ function unterwegs(daten, ph, jetzt, eigene) {
       punkt: morgenOrt.farbe,
       titel: morgen.t || morgenOrt.name,
       unter: zeilen(morgen.tr)[0] || (morgen.stay && morgen.stay !== t?.stay ? `🛏️ ${morgen.stay}` : formatTag(morgenDatum, true)),
-    }])) : ''}
+    }, ...fluegeAm(eigene, morgenDatum).map((f) => flugZeile(f, jetzt))])) : ''}
     ${uhren(jetzt)}`;
 }
 

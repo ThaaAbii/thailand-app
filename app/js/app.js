@@ -18,6 +18,8 @@ import {
   seiteTagebuch, tagebuchAktionen, tagebuchAenderung, tagebuchEingabe, ladeFotos,
   fotosFuerBackup, fotosAusBackup,
 } from './tagebuch.js';
+import { seiteTagBearbeiten, seiteUnterkunft, seiteUnterkuenfte, seiteFluege, seiteFlug, detailAktionen, detailAenderung } from './details.js';
+import { mitAnpassungen } from './anpassungen.js';
 import { e } from './ui.js';
 
 const inhalt = document.getElementById('inhalt');
@@ -66,11 +68,21 @@ function jetzt() {
 // ---------- Seiten ----------
 // Jede Seite liefert { titel, zurueck?, html }. nav = welcher Knopf unten leuchtet.
 
-const r = () => state.reise;
+// Reisedaten inkl. deiner Änderungen (bearbeitete Tage, Check-in-Fristen deiner Flüge)
+const r = () => mitAnpassungen(state.reise, state.eigene);
 const ROUTEN = {
   heute: { nav: 'heute', seite: () => ({ titel: r()?.reise?.titel || 'Thailand', html: renderHeute(r(), jetzt(), state.eigene) }) },
   plan: { nav: 'plan', seite: () => seitePlan(r(), state.eigene, jetzt()) },
-  tag: { nav: 'plan', seite: (t) => seiteTag(r(), state.eigene, jetzt(), t[0]) },
+  tag: {
+    nav: 'plan',
+    seite: (t) => (t[1] === 'bearbeiten'
+      ? seiteTagBearbeiten(state.reise, r(), state.eigene, t[0])
+      : seiteTag(r(), state.eigene, jetzt(), t[0])),
+  },
+  unterkuenfte: { nav: 'mehr', seite: () => seiteUnterkuenfte(r(), state.eigene) },
+  unterkunft: { nav: 'mehr', seite: (t) => seiteUnterkunft(r(), state.eigene, t[0], t[1] === 'bearbeiten') },
+  fluege: { nav: 'mehr', seite: () => seiteFluege(r(), state.eigene, jetzt()) },
+  flug: { nav: 'mehr', seite: (t) => seiteFlug(r(), state.eigene, jetzt(), t[0], t[1]) },
   ausgaben: { nav: 'ausgaben', seite: (t) => seiteAusgaben(r(), state.eigene, jetzt(), t, state.ausgabenUi) },
   tagebuch: { nav: 'tagebuch', seite: (t) => seiteTagebuch(r(), state.eigene, jetzt(), t) },
   mehr: { nav: 'mehr', seite: () => seiteMehr(r(), state.eigene) },
@@ -300,6 +312,7 @@ const ctx = {
   state, render, jetzt, holeKurs, vibriere, speichereDatei, speichereEigene, zurueck,
   toast: (t) => toast(t),
   dauerhaftAnfragen: () => dauerhaftAnfragen(),
+  daten: () => r(),
 };
 
 // ---------- Backup-Erinnerung & Installation ----------
@@ -535,7 +548,7 @@ const APP_AKTIONEN = {
     zeigeVollbild(el.dataset.de, el.dataset.thai, el.dataset.laut);
   },
 };
-const MODUL_AKTIONEN = [listenAktionen, ausgabenAktionen, ideenAktionen, tagebuchAktionen];
+const MODUL_AKTIONEN = [listenAktionen, ausgabenAktionen, ideenAktionen, tagebuchAktionen, detailAktionen];
 
 inhalt.addEventListener('click', (ev) => {
   const ersetzen = ev.target.closest('a[data-ersetzen]');
@@ -570,6 +583,10 @@ inhalt.addEventListener('input', (ev) => {
 inhalt.addEventListener('change', async (ev) => {
   const t = ev.target;
   if (listenAenderung(t, ctx)) return;
+  if (await detailAenderung(t, ctx)) {
+    zaehleFotos();
+    return;
+  }
   if (state.route === 'ausgaben' && ausgabenAenderung(t, ctx)) return;
   if (state.route === 'tagebuch' && await tagebuchAenderung(t, ctx)) {
     zaehleFotos();

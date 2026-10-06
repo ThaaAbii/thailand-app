@@ -24,6 +24,10 @@ Sie werden in der App auf dem Handy importiert und bleiben dort (IndexedDB). Im 
 Eigene Einträge (Häkchen, eigene Checklisten-Punkte, Packliste, Ausgaben, Tagebuch, Ideen, Einstellungen, zuletzt geholter Kurs) liegen in IndexedDB unter `eigene`
 und sind im Backup-Export unter `_app.eigene` enthalten. Fotos liegen im IndexedDB-Store `fotos` und stehen im Backup als data-URLs unter `_app.fotos`.
 
+- ✅ Bearbeiten in der App: Tage (Titel, Programm, Transport, Unterkunft, Check-in/out, Notiz) als Änderungen
+  in `eigene.tagAenderungen` (Original bleibt, pro Tag zurücksetzbar); Hotel-Details in `eigene.unterkuenfte`;
+  Flüge in `eigene.fluege` mit Online-Check-in-Status – offene Check-ins erscheinen automatisch als Fristen
+
 ## Aufbau
 
 ```
