@@ -1,13 +1,15 @@
 // Die Startseite „Heute“.
 import {
-  TZ_DE, TZ_TH, uhrzeitIn, versatzStunden, plusTage, tageDiff, datumIn, formatTag, formatKurz,
-  formatLang, countdown, restText, naechsteFristen, reisePhase,
+  TZ_DE, TZ_TH, uhrzeitIn, versatzStunden, plusTage, tageDiff, datumIn, formatTag,
+  formatLang, countdown, naechsteFristen, reisePhase,
 } from './zeit.js';
 import { e, zeilen, ortInfo } from './ui.js';
+import { zeile, fristHtml, ortChip, balken } from './bausteine.js';
+import { checklistenGruppen, fortschritt, packSummen, packWarnungen, formatKg } from './listenlogik.js';
 
-export function renderHeute(daten, jetzt) {
+export function renderHeute(daten, jetzt, eigene = {}) {
   const ph = reisePhase(daten, jetzt);
-  if (ph.phase === 'vorher') return vorher(daten, ph, jetzt);
+  if (ph.phase === 'vorher') return vorher(daten, ph, jetzt, eigene);
   if (ph.phase === 'nachher') return nachher(daten, ph);
   return unterwegs(daten, ph, jetzt);
 }
@@ -31,7 +33,7 @@ export function aktualisiereTicker(root, jetzt) {
 
 // ---------- Phasen ----------
 
-function vorher(daten, ph, jetzt) {
+function vorher(daten, ph, jetzt, eigene) {
   const fristen = naechsteFristen(daten.fristen, jetzt);
   const naechste = fristen[0];
   return `
@@ -52,8 +54,9 @@ function vorher(daten, ph, jetzt) {
     <section class="karte">
       <h2>Danach</h2>
       <ul class="fristen">${fristen.slice(1, 5).map((f) => fristHtml(f, jetzt, TZ_DE)).join('')}</ul>
-      ${fristen.length > 5 ? `<p class="leise klein">… und ${fristen.length - 5} weitere</p>` : ''}
+      <a class="mehrlink" href="#fristen">Alle Fristen ansehen ›</a>
     </section>` : ''}
+    ${vorbereitung(daten, eigene)}
     ${morgenKarte(daten, ph, plusTage(ph.datum, 1))}
   `;
 }
@@ -71,7 +74,7 @@ function unterwegs(daten, ph, jetzt) {
       <p class="ueberzeile">${e(ph.label)}</p>
       <h1 class="tagtitel">${e(t?.t || 'Kein Eintrag für heute')}</h1>
       <p class="unterzeile">${e(formatTag(ph.datum, true))}
-        ${t?.p ? `<span class="ort-chip" style="--ort:${ort.farbe}">${e(ort.name)}</span>` : ''}</p>
+        ${t?.p ? `${ortChip(ort)}` : ''}</p>
     </section>`;
 
   const abflugBald = ph.abflug && ph.abflug > jetzt ? `
@@ -122,6 +125,31 @@ function nachher(daten, ph) {
 
 // ---------- Bausteine ----------
 
+function vorbereitung(daten, eigene) {
+  const punkte = checklistenGruppen(daten, eigene).flatMap((g) => g.punkte);
+  const fc = fortschritt(punkte);
+  const pack = Array.isArray(eigene?.packliste) ? eigene.packliste : [];
+  const s = packSummen(pack);
+  const warnung = packWarnungen(s)[0];
+  if (!fc.gesamt && !pack.length) return '';
+  return `
+    <section class="karte">
+      <h2>Vorbereitung</h2>
+      ${fc.gesamt ? `
+      <a class="fortschritt-link" href="#checkliste">
+        <span>✅ Checkliste</span><b>${fc.erledigt} / ${fc.gesamt}</b>
+      </a>
+      ${balken(fc.prozent)}` : ''}
+      ${pack.length ? `
+      <a class="fortschritt-link" href="#packliste">
+        <span>🧳 Aufgabegepäck</span><b>${formatKg(s.aufgabe)}</b>
+      </a>
+      ${balken((s.aufgabe / 23000) * 100, warnung?.stufe === 'ok' ? '' : warnung?.stufe)}
+      ${warnung && warnung.stufe !== 'ok' ? `<p class="warnung warnung--${warnung.stufe} klein">${e(warnung.text)}</p>` : ''}` : `
+      <a class="fortschritt-link" href="#packliste"><span>🧳 Packliste anlegen</span><b>›</b></a>`}
+    </section>`;
+}
+
 function countdownHtml(ziel) {
   return `
     <div class="countdown" data-cd="${e(ziel.toISOString())}">
@@ -144,32 +172,7 @@ function uhren(jetzt) {
     </section>`;
 }
 
-function zeile(icon, titel, text, liste = false) {
-  const z = zeilen(text);
-  if (!z.length) return '';
-  const inhalt = liste && z.length > 1
-    ? `<ul>${z.map((x) => `<li>${e(x)}</li>`).join('')}</ul>`
-    : `<p>${z.map(e).join('<br>')}</p>`;
-  return `
-    <div class="zeile">
-      <span class="zeile__icon" aria-hidden="true">${icon}</span>
-      <div class="zeile__text"><h3>${e(titel)}</h3>${inhalt}</div>
-    </div>`;
-}
 
-function fristHtml(f, jetzt, tz) {
-  const stufe = ['crit', 'warn', 'ok'].includes(f.s) ? f.s : 'ok';
-  const stufeText = { crit: 'Wichtig', warn: 'Achtung', ok: 'Info' }[stufe];
-  return `
-    <li class="frist frist--${stufe}">
-      <div class="frist__kopf">
-        <strong>${e(f.w)}</strong>
-        <span class="frist__rest">${e(restText(f.zeit, jetzt, tz))}</span>
-      </div>
-      ${f.h ? `<p class="frist__hinweis">${e(f.h)}</p>` : ''}
-      <p class="frist__zeit"><span class="sr">${stufeText}: </span>🇩🇪 ${e(formatKurz(f.zeit, TZ_DE))} · 🇹🇭 ${e(formatKurz(f.zeit, TZ_TH))}</p>
-    </li>`;
-}
 
 function morgenKarte(daten, ph, datum) {
   const t = ph.tage.find((x) => x.d === datum);
@@ -180,7 +183,7 @@ function morgenKarte(daten, ph, datum) {
   return `
     <section class="karte karte--morgen" style="--ort:${ort.farbe}">
       <h2>Morgen · ${e(formatTag(datum))}</h2>
-      <p class="morgen__titel">${t.p ? `<span class="ort-chip" style="--ort:${ort.farbe}">${e(ort.name)}</span> ` : ''}${e(t.t)}</p>
+      <p class="morgen__titel">${t.p ? `${ortChip(ort)} ` : ''}${e(t.t)}</p>
       ${zeile('🚐', 'Transport', t.tr, true)}
       ${neueUnterkunft ? zeile('🛏️', 'Unterkunft', t.stay) : ''}
       ${zeile('🔑', 'Check-in / Check-out', t.ci, true)}

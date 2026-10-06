@@ -82,3 +82,21 @@ test('Heimreisetag und danach', () => {
 test('Demo-Daten: 22 Tage in Thailand', () => {
   assert.equal(reisePhase(demo, new Date('2026-11-25T05:00:00Z')).label, 'Tag 8 von 22');
 });
+
+test('Fristfarben: rot ≤ 7 Tage, orange ≤ 21 Tage', async () => {
+  const { fristStufe } = await import('../app/js/zeit.js');
+  const jetzt = new Date('2026-10-06T08:00:00Z');
+  assert.equal(fristStufe(new Date('2026-10-13T20:00:00Z'), jetzt), 'rot');
+  assert.equal(fristStufe(new Date('2026-10-14T20:00:00Z'), jetzt), 'orange');
+  assert.equal(fristStufe(new Date('2026-10-27T20:00:00Z'), jetzt), 'orange');
+  assert.equal(fristStufe(new Date('2026-10-28T20:00:00Z'), jetzt), 'gruen');
+  assert.equal(fristStufe(new Date('2026-10-01T20:00:00Z'), jetzt), 'vorbei');
+});
+
+test('tagLabel für beliebige Tage', async () => {
+  const { tagLabel } = await import('../app/js/zeit.js');
+  const basis = { tage: reise.tage, abflug: new Date(reise.reise.abflug), heimkehr: new Date(reise.reise.heimkehr) };
+  assert.equal(tagLabel(basis, '2026-11-17').label, 'Abreisetag');
+  assert.equal(tagLabel(basis, '2026-11-30').label, 'Tag 13 von 22');
+  assert.equal(tagLabel(basis, '2026-12-10').label, 'Heimreisetag');
+});
