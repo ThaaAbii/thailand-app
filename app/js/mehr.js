@@ -11,9 +11,18 @@ export function renderMehr(daten) {
     </a>`;
   const nb = Array.isArray(daten?.buchungen) ? daten.buchungen.length : 0;
   const nt = (Array.isArray(daten?.tipps) ? daten.tipps : []).reduce((n, g) => n + (g?.tipps?.length ?? 0), 0);
+  const nf = (Array.isArray(daten?.fristen) ? daten.fristen : []).filter((f) => Date.parse(f?.t) > Date.now()).length;
   return `
     <h1 class="seitentitel">Mehr</h1>
     <div class="kacheln">
+      <a class="kachel kachel--notfall" href="#notfall">
+        <span class="kachel__icon" aria-hidden="true">🆘</span>
+        <span><b>Notfall</b><small>Notrufe, Versicherung, Botschaft</small></span>
+        <span class="kachel__pfeil" aria-hidden="true">›</span>
+      </a>
+      ${kachel('#thai', '🇹🇭', 'Thai-Spickzettel', 'Sätze zum Zeigen, z. B. „ohne Schweinefleisch“')}
+      ${kachel('#karte', '🗺️', 'Routenkarte', 'Deine Route durch Südthailand – offline')}
+      ${kachel('#fristen', '⏰', 'Fristen', `${nf} offene Fristen`)}
       ${kachel('#buchungen', '🧾', 'Buchungen', `${nb} Buchungen mit Storno-Status`)}
       ${kachel('#tipps', '💡', 'Tipps', `${nt} Tipps für unterwegs`)}
       ${kachel('#daten', '💾', 'Daten & Backup', 'Import, Export, Darstellung, Testdatum')}

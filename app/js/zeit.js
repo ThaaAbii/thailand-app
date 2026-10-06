@@ -154,6 +154,18 @@ export function tagLabel({ tage, abflug, heimkehr }, datum) {
   return { label: `Tag ${nr} von ${innere.length}`, gesamt: innere.length };
 }
 
+/** Die Tage in Thailand (ohne Abreise- und Heimreisetag) als 'JJJJ-MM-TT'. */
+export function thailandTage(daten) {
+  const tage = [...(daten?.tage ?? [])].filter((t) => t && t.d).map((t) => t.d).sort();
+  if (!tage.length) return [];
+  const abflug = parseZeit(daten?.reise?.abflug);
+  const heimkehr = parseZeit(daten?.reise?.heimkehr);
+  const von = abflug ? datumIn(abflug, TZ_DE) : tage[0];
+  const bis = heimkehr ? datumIn(heimkehr, TZ_DE) : tage[tage.length - 1];
+  const innere = tage.filter((d) => d > von && d < bis);
+  return innere.length ? innere : tage;
+}
+
 /** Farbe einer Frist nach Restzeit: rot ≤ 7 Tage, orange ≤ 21 Tage, sonst grün. */
 export function fristStufe(zeit, jetzt, tz = TZ_DE) {
   if (zeit <= jetzt) return 'vorbei';

@@ -8,16 +8,25 @@ import { renderPlan } from './plan.js';
 import { renderFristen } from './fristen.js';
 import { renderCheckliste, renderPackliste, listenAktionen, listenAenderung } from './listen.js';
 import { renderMehr, renderBuchungen, renderTipps } from './mehr.js';
+import { renderAusgaben, ausgabenAktionen, ausgabenAenderung, aktualisiereUmrechnung } from './ausgaben.js';
+import { kursAusAntwort, kursVeraltet } from './ausgabenlogik.js';
+import { renderKarte } from './karte.js';
+import { renderThai, zeigeVollbild } from './thai.js';
+import { renderNotfall } from './notfall.js';
 import { e } from './ui.js';
 
 // Seite → welcher Knopf unten leuchtet
 const ANSICHTEN = {
   heute: 'heute',
   plan: 'plan',
-  fristen: 'fristen',
+  ausgaben: 'ausgaben',
   checkliste: 'listen',
   packliste: 'listen',
   mehr: 'mehr',
+  fristen: 'mehr',
+  karte: 'mehr',
+  thai: 'mehr',
+  notfall: 'mehr',
   buchungen: 'mehr',
   tipps: 'mehr',
   daten: 'mehr',
@@ -32,6 +41,9 @@ const state = {
   ansicht: 'heute',
   vorschau: null,
   packBearbeiten: null,
+  ausgabenUi: {},
+  karteUi: {},
+  installPrompt: null,
   dbFehler: false,
   offlineBereit: false,
   persistent: false,
@@ -90,6 +102,12 @@ function banner() {
   if (state.meta?.quelle !== 'import' && state.ansicht === 'heute') {
     teile.push('<div class="banner">Du siehst Demo-Daten. <a href="#daten">Eigene Reisedaten importieren →</a></div>');
   }
+  if (state.ansicht === 'heute' && backupFaellig()) {
+    teile.push('<div class="banner banner--test">💾 Dein letztes Backup ist über eine Woche her. <a href="#daten">Jetzt sichern →</a></div>');
+  }
+  if (state.ansicht === 'heute' && state.installPrompt && einstellung('installHinweisWeg') !== '1') {
+    teile.push('<div class="banner banner--install"><span>📲 Als App installieren – mit eigenem Symbol, Vollbild und offline.</span><span class="knopfreihe"><button class="knopf knopf--klein" data-aktion="installieren">Installieren</button><button class="knopf knopf--klein" data-aktion="install-weg">Später</button></span></div>');
+  }
   return teile.join('');
 }
 
@@ -113,7 +131,16 @@ function render() {
     inhalt.innerHTML = banner() + renderHeute(r, jetzt(), state.eigene);
     aktualisiereTicker(inhalt, jetzt());
   } else if (state.ansicht === 'plan' && r) {
-    inhalt.innerHTML = banner() + renderPlan(r, jetzt());
+    inhalt.innerHTML = banner() + renderPlan(r, jetzt(), state.eigene);
+  } else if (state.ansicht === 'ausgaben' && r) {
+    inhalt.innerHTML = banner() + renderAusgaben(r, state.eigene, jetzt(), state.ausgabenUi);
+    aktualisiereUmrechnung(inhalt, r, state.eigene);
+  } else if (state.ansicht === 'karte' && r) {
+    inhalt.innerHTML = banner() + renderKarte(r, jetzt(), state.karteUi);
+  } else if (state.ansicht === 'thai') {
+    inhalt.innerHTML = banner() + renderThai({ hoeflich: einstellung('hoeflich'), allergie: Number(einstellung('allergie')) || 0 });
+  } else if (state.ansicht === 'notfall' && r) {
+    inhalt.innerHTML = banner() + renderNotfall(r, jetzt());
   } else if (state.ansicht === 'fristen' && r) {
     inhalt.innerHTML = banner() + renderFristen(r, jetzt());
   } else if (state.ansicht === 'checkliste' && r) {
@@ -137,6 +164,8 @@ function render() {
       offlineBereit: state.offlineBereit,
       persistent: state.persistent,
       version: VERSION,
+      kannInstallieren: !!state.installPrompt,
+      installiert: istInstalliert(),
     });
   }
   letzterSchluessel = schluessel();
@@ -154,8 +183,13 @@ function zeigeAnsicht() {
   if (ziel === 'checkliste' || ziel === 'packliste') setzeEinstellung('listenTab', ziel);
   state.ansicht = ziel in ANSICHTEN ? ziel : 'heute';
   state.packBearbeiten = null;
+  state.ausgabenUi.bearbeiten = null;
+  state.ausgabenUi.alleZeigen = false;
   render();
   window.scrollTo(0, 0);
+  inhalt.classList.remove('einblenden');
+  void inhalt.offsetWidth;
+  inhalt.classList.add('einblenden');
   if (state.ansicht === 'plan') {
     inhalt.querySelector('[data-heute]')?.scrollIntoView({ block: 'center' });
   }
@@ -174,7 +208,100 @@ async function speichereEigene() {
   }
 }
 
-const ctx = { state, render, toast: (t) => toast(t), speichereEigene };
+function vibriere() {
+  try { navigator.vibrate?.(12); } catch { /* egal */ }
+}
+
+// ---------- Wechselkurs automatisch holen ----------
+
+const KURS_DIENSTE = [
+  'https://api.frankfurter.dev/v1/latest?base=EUR&symbols=THB',
+  'https://open.er-api.com/v6/latest/EUR',
+];
+
+let kursLaeuft = null;
+async function holeKurs(erzwingen = false) {
+  if (state.eigene?.einstellungen?.kursModus === 'manuell' && !erzwingen) return false;
+  if (!erzwingen && !kursVeraltet(state.eigene)) return false;
+  if (!navigator.onLine) return false;
+  if (kursLaeuft) return kursLaeuft;
+  kursLaeuft = (async () => {
+    for (const url of KURS_DIENSTE) {
+      try {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 8000);
+        const antwort = await fetch(url, { signal: ctrl.signal, cache: 'no-store' });
+        clearTimeout(timer);
+        if (!antwort.ok) continue;
+        const kurs = kursAusAntwort(await antwort.json());
+        if (!kurs) continue;
+        state.eigene.kursCache = { ...kurs, geholt: new Date().toISOString(), quelle: new URL(url).host };
+        await speichereEigene();
+        return true;
+      } catch { /* nächster Dienst */ }
+    }
+    return false;
+  })();
+  try {
+    return await kursLaeuft;
+  } finally {
+    kursLaeuft = null;
+  }
+}
+
+function speichereDatei(datei) {
+  const url = URL.createObjectURL(datei);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = datei.name;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+  toast(`Gespeichert als ${datei.name} (im Ordner „Downloads“)`);
+}
+
+const ctx = { state, render, toast: (t) => toast(t), speichereEigene, jetzt, holeKurs, vibriere, speichereDatei };
+
+// ---------- Backup-Erinnerung & Installation ----------
+
+function backupFaellig() {
+  const e2 = state.eigene ?? {};
+  const hatEintraege = (e2.ausgaben?.length ?? 0) + Object.keys(e2.checkliste ?? {}).length + (e2.packliste?.length ?? 0) > 0;
+  if (!hatEintraege || state.meta?.quelle !== 'import') return false;
+  const zuletzt = Date.parse(einstellung('backupAm') ?? '');
+  if (!Number.isFinite(zuletzt)) {
+    // Erst erinnern, wenn seit dem Import eine Woche vergangen ist
+    const importiert = Date.parse(state.meta?.importiertAm ?? '');
+    return Number.isFinite(importiert) && Date.now() - importiert > 7 * 86400000;
+  }
+  return Date.now() - zuletzt > 7 * 86400000;
+}
+
+function istInstalliert() {
+  return window.matchMedia?.('(display-mode: standalone)').matches || navigator.standalone === true;
+}
+
+window.addEventListener('beforeinstallprompt', (ev) => {
+  ev.preventDefault();
+  state.installPrompt = ev;
+  if (state.ansicht === 'heute' || state.ansicht === 'daten') render();
+});
+
+window.addEventListener('appinstalled', () => {
+  state.installPrompt = null;
+  toast('App installiert ✓ – du findest sie auf dem Startbildschirm.');
+  render();
+});
+
+async function installieren() {
+  const p = state.installPrompt;
+  if (!p) return;
+  p.prompt();
+  try { await p.userChoice; } catch { /* egal */ }
+  state.installPrompt = null;
+  render();
+}
 
 // ---------- Daten laden ----------
 
@@ -288,16 +415,8 @@ function kannTeilen() {
 
 function exportDownload() {
   if (!state.reise) return;
-  const datei = backupDatei();
-  const url = URL.createObjectURL(datei);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = datei.name;
-  document.body.append(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 10000);
-  toast(`Gespeichert als ${datei.name}`);
+  speichereDatei(backupDatei());
+  setzeEinstellung('backupAm', new Date().toISOString());
 }
 
 async function exportTeilen() {
@@ -305,6 +424,7 @@ async function exportTeilen() {
   if (!datei) return exportDownload();
   try {
     await navigator.share({ files: [datei], title: 'Thailand-Backup' });
+    setzeEinstellung('backupAm', new Date().toISOString());
   } catch (err) {
     if (err?.name !== 'AbortError') toast('Teilen hat nicht geklappt – nutze „Herunterladen“.');
   }
@@ -356,13 +476,49 @@ inhalt.addEventListener('click', (ev) => {
     'export-teilen': exportTeilen,
     'demo-zurueck': demoZurueck,
     'testdatum-weg': () => { setzeEinstellung('testdatum', null); render(); },
+    installieren,
+    'install-weg': () => { setzeEinstellung('installHinweisWeg', '1'); render(); },
   })[aktion]?.();
-  listenAktionen[aktion]?.(ev.target.closest('[data-aktion]'), ctx);
+  const el = ev.target.closest('[data-aktion]');
+  listenAktionen[aktion]?.(el, ctx);
+  ausgabenAktionen[aktion]?.(el, ctx);
+  if (aktion === 'karte-ort') {
+    state.karteUi.ort = state.karteUi.ort === el.dataset.ort ? null : el.dataset.ort;
+    render();
+    if (state.karteUi.ort) inhalt.querySelector('.karte--morgen')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  } else if (aktion === 'thai-zeigen') {
+    vibriere();
+    zeigeVollbild(el.dataset.de, el.dataset.thai, el.dataset.laut);
+  }
+});
+
+inhalt.addEventListener('keydown', (ev) => {
+  // Kartenorte (SVG) per Tastatur bedienbar; Enter im Betragsfeld speichert
+  if (ev.key === 'Enter' && ev.target.matches?.('g[data-aktion]')) ev.target.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  if (ev.key === 'Enter' && (ev.target.id === 'ausgabe-betrag' || ev.target.id === 'ausgabe-notiz')) {
+    ev.preventDefault();
+    ausgabenAktionen['ausgabe-speichern'](null, ctx);
+  }
+});
+
+inhalt.addEventListener('input', (ev) => {
+  if (ev.target.id === 'ausgabe-betrag' || ev.target.name === 'waehrung') aktualisiereUmrechnung(inhalt, state.reise, state.eigene);
 });
 
 inhalt.addEventListener('change', (ev) => {
   const t = ev.target;
   if (listenAenderung(t, ctx)) return;
+  if (state.ansicht === 'ausgaben' && ausgabenAenderung(t, ctx)) return;
+  if (t.name === 'hoeflich') {
+    setzeEinstellung('hoeflich', t.value);
+    render();
+    return;
+  }
+  if (t.id === 'allergie') {
+    setzeEinstellung('allergie', t.value);
+    render();
+    return;
+  }
   if (t.dataset.einstellung === 'ausblenden') {
     setzeEinstellung('ausblenden', t.checked ? '1' : null);
     render();
@@ -377,10 +533,15 @@ inhalt.addEventListener('change', (ev) => {
 });
 
 window.addEventListener('hashchange', zeigeAnsicht);
-window.addEventListener('online', onlineStatus);
+window.addEventListener('online', () => {
+  onlineStatus();
+  holeKurs().then((neu) => { if (neu && state.ansicht === 'ausgaben') render(); });
+});
 window.addEventListener('offline', onlineStatus);
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && state.ansicht === 'heute') render();
+  if (document.visibilityState !== 'visible') return;
+  if (state.ansicht === 'heute') render();
+  holeKurs();
 });
 
 setInterval(() => {
@@ -398,4 +559,5 @@ setInterval(() => {
   await ladeDaten();
   try { state.persistent = (await navigator.storage?.persisted?.()) ?? false; } catch { /* egal */ }
   zeigeAnsicht();
+  holeKurs().then((neu) => { if (neu && state.ansicht === 'ausgaben') render(); });
 })();
