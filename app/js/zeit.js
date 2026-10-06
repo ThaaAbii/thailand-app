@@ -137,17 +137,28 @@ export function reisePhase(daten, jetzt) {
   if (datum > letzter) return { ...basis, phase: 'nachher' };
 
   const tag = tage.find((t) => t.d === datum) ?? null;
-  const abflugTag = abflug ? datumIn(abflug, TZ_DE) : erster;
-  const heimTag = heimkehr ? datumIn(heimkehr, TZ_DE) : letzter;
+  const { label, gesamt } = tagLabel(basis, datum);
+  return { ...basis, phase: 'unterwegs', tag, label, gesamt };
+}
+
+/** „Abreisetag“, „Tag 4 von 22“ oder „Heimreisetag“ für ein Datum der Reise. */
+export function tagLabel({ tage, abflug, heimkehr }, datum) {
+  const abflugTag = abflug ? datumIn(abflug, TZ_DE) : tage[0].d;
+  const heimTag = heimkehr ? datumIn(heimkehr, TZ_DE) : tage[tage.length - 1].d;
   let innere = tage.filter((t) => t.d > abflugTag && t.d < heimTag);
   if (!innere.length) innere = tage;
 
-  let label;
-  if (datum <= abflugTag && innere !== tage) label = 'Abreisetag';
-  else if (datum >= heimTag && innere !== tage) label = 'Heimreisetag';
-  else {
-    const nr = innere.findIndex((t) => t.d === datum) + 1 || tageDiff(innere[0].d, datum) + 1;
-    label = `Tag ${nr} von ${innere.length}`;
-  }
-  return { ...basis, phase: 'unterwegs', tag, label, gesamt: innere.length };
+  if (datum <= abflugTag && innere !== tage) return { label: 'Abreisetag', gesamt: innere.length };
+  if (datum >= heimTag && innere !== tage) return { label: 'Heimreisetag', gesamt: innere.length };
+  const nr = innere.findIndex((t) => t.d === datum) + 1 || tageDiff(innere[0].d, datum) + 1;
+  return { label: `Tag ${nr} von ${innere.length}`, gesamt: innere.length };
+}
+
+/** Farbe einer Frist nach Restzeit: rot ≤ 7 Tage, orange ≤ 21 Tage, sonst grün. */
+export function fristStufe(zeit, jetzt, tz = TZ_DE) {
+  if (zeit <= jetzt) return 'vorbei';
+  const tage = tageDiff(datumIn(jetzt, tz), datumIn(zeit, tz));
+  if (tage <= 7) return 'rot';
+  if (tage <= 21) return 'orange';
+  return 'gruen';
 }

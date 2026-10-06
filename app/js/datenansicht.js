@@ -1,6 +1,7 @@
 // Die Seite „Daten“: Import, Export (Backup), Darstellung, Testdatum, Infos.
 import { formatTag, formatLang, TZ_DE } from './zeit.js';
 import { e } from './ui.js';
+import { unterseitenKopf } from './bausteine.js';
 
 export function renderDaten(s) {
   const z = s.zusammenfassung;
@@ -10,7 +11,7 @@ export function renderDaten(s) {
     : `<p>ℹ️ Gerade siehst du <strong>Demo-Daten</strong> mit erfundenen Beispielen.</p>`;
 
   return `
-    <h1 class="seitentitel">Daten</h1>
+    ${unterseitenKopf('Daten & Backup')}
 
     <section class="karte">
       <h2>Aktuelle Daten</h2>

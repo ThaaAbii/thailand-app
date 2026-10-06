@@ -4,9 +4,24 @@ import * as db from './db.js';
 import { pruefeReiseDaten, zusammenfassung, trenneImport, baueExport, backupDateiname } from './daten.js';
 import { renderHeute, aktualisiereTicker } from './heute.js';
 import { renderDaten } from './datenansicht.js';
+import { renderPlan } from './plan.js';
+import { renderFristen } from './fristen.js';
+import { renderCheckliste, renderPackliste, listenAktionen, listenAenderung } from './listen.js';
+import { renderMehr, renderBuchungen, renderTipps } from './mehr.js';
 import { e } from './ui.js';
 
-const ANSICHTEN = ['heute', 'daten'];
+// Seite → welcher Knopf unten leuchtet
+const ANSICHTEN = {
+  heute: 'heute',
+  plan: 'plan',
+  fristen: 'fristen',
+  checkliste: 'listen',
+  packliste: 'listen',
+  mehr: 'mehr',
+  buchungen: 'mehr',
+  tipps: 'mehr',
+  daten: 'mehr',
+};
 const inhalt = document.getElementById('inhalt');
 const toastEl = document.getElementById('toast');
 
@@ -16,6 +31,7 @@ const state = {
   eigene: {},
   ansicht: 'heute',
   vorschau: null,
+  packBearbeiten: null,
   dbFehler: false,
   offlineBereit: false,
   persistent: false,
@@ -80,7 +96,7 @@ function banner() {
 let letzterSchluessel = '';
 function render() {
   for (const a of document.querySelectorAll('[data-nav]')) {
-    const aktiv = a.dataset.nav === state.ansicht;
+    const aktiv = a.dataset.nav === ANSICHTEN[state.ansicht];
     a.classList.toggle('aktiv', aktiv);
     if (aktiv) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');
@@ -92,9 +108,24 @@ function render() {
     if (state.ansicht !== 'daten') return;
   }
 
-  if (state.ansicht === 'heute' && state.reise) {
-    inhalt.innerHTML = banner() + renderHeute(state.reise, jetzt());
+  const r = state.reise;
+  if (state.ansicht === 'heute' && r) {
+    inhalt.innerHTML = banner() + renderHeute(r, jetzt(), state.eigene);
     aktualisiereTicker(inhalt, jetzt());
+  } else if (state.ansicht === 'plan' && r) {
+    inhalt.innerHTML = banner() + renderPlan(r, jetzt());
+  } else if (state.ansicht === 'fristen' && r) {
+    inhalt.innerHTML = banner() + renderFristen(r, jetzt());
+  } else if (state.ansicht === 'checkliste' && r) {
+    inhalt.innerHTML = banner() + renderCheckliste(r, state.eigene, { ausblenden: einstellung('ausblenden') === '1' });
+  } else if (state.ansicht === 'packliste') {
+    inhalt.innerHTML = banner() + renderPackliste(state.eigene, { bearbeiten: state.packBearbeiten });
+  } else if (state.ansicht === 'mehr') {
+    inhalt.innerHTML = banner() + renderMehr(r);
+  } else if (state.ansicht === 'buchungen' && r) {
+    inhalt.innerHTML = banner() + renderBuchungen(r);
+  } else if (state.ansicht === 'tipps' && r) {
+    inhalt.innerHTML = banner() + renderTipps(r);
   } else if (state.ansicht === 'daten') {
     inhalt.innerHTML = banner() + renderDaten({
       meta: state.meta,
@@ -118,11 +149,32 @@ function schluessel() {
 }
 
 function zeigeAnsicht() {
-  const ziel = location.hash.replace('#', '');
-  state.ansicht = ANSICHTEN.includes(ziel) ? ziel : 'heute';
+  let ziel = location.hash.replace('#', '');
+  if (ziel === 'listen') ziel = einstellung('listenTab') === 'packliste' ? 'packliste' : 'checkliste';
+  if (ziel === 'checkliste' || ziel === 'packliste') setzeEinstellung('listenTab', ziel);
+  state.ansicht = ziel in ANSICHTEN ? ziel : 'heute';
+  state.packBearbeiten = null;
   render();
   window.scrollTo(0, 0);
+  if (state.ansicht === 'plan') {
+    inhalt.querySelector('[data-heute]')?.scrollIntoView({ block: 'center' });
+  }
 }
+
+// ---------- Eigene Einträge speichern ----------
+
+let speicherWarnungGezeigt = false;
+async function speichereEigene() {
+  try {
+    await db.schreibe('eigene', state.eigene);
+  } catch {
+    state.dbFehler = true;
+    if (!speicherWarnungGezeigt) toast('Speichern hat nicht geklappt – bitte Backup machen.');
+    speicherWarnungGezeigt = true;
+  }
+}
+
+const ctx = { state, render, toast: (t) => toast(t), speichereEigene };
 
 // ---------- Daten laden ----------
 
@@ -305,11 +357,16 @@ inhalt.addEventListener('click', (ev) => {
     'demo-zurueck': demoZurueck,
     'testdatum-weg': () => { setzeEinstellung('testdatum', null); render(); },
   })[aktion]?.();
+  listenAktionen[aktion]?.(ev.target.closest('[data-aktion]'), ctx);
 });
 
 inhalt.addEventListener('change', (ev) => {
   const t = ev.target;
-  if (t.id === 'import-datei') dateiGewaehlt(t.files?.[0]);
+  if (listenAenderung(t, ctx)) return;
+  if (t.dataset.einstellung === 'ausblenden') {
+    setzeEinstellung('ausblenden', t.checked ? '1' : null);
+    render();
+  } else if (t.id === 'import-datei') dateiGewaehlt(t.files?.[0]);
   else if (t.name === 'thema') {
     setzeEinstellung('thema', t.value === 'system' ? null : t.value);
     wendeThemaAn();
