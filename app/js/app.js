@@ -1,49 +1,41 @@
-// Start der App: Daten laden, Seiten anzeigen, Offline-Modus einrichten.
+// Start der App: Daten laden, Seiten anzeigen (mit Unterseiten), Offline-Modus einrichten.
 import { VERSION } from './version.js';
 import * as db from './db.js';
 import { pruefeReiseDaten, zusammenfassung, trenneImport, baueExport, backupDateiname } from './daten.js';
 import { renderHeute, aktualisiereTicker } from './heute.js';
-import { renderDaten } from './datenansicht.js';
-import { renderPlan } from './plan.js';
-import { renderFristen } from './fristen.js';
-import { renderCheckliste, renderPackliste, listenAktionen, listenAenderung } from './listen.js';
-import { renderMehr, renderBuchungen, renderTipps } from './mehr.js';
-import { renderAusgaben, ausgabenAktionen, ausgabenAenderung, aktualisiereUmrechnung } from './ausgaben.js';
+import { seiteDaten } from './datenansicht.js';
+import { seitePlan, seiteTag } from './plan.js';
+import { seiteFristen } from './fristen.js';
+import { seiteCheckliste, seitePackliste, listenAktionen, listenAenderung } from './listen.js';
+import { seiteMehr, seiteBuchungen, seiteTipps } from './mehr.js';
+import { seiteAusgaben, ausgabenAktionen, ausgabenAenderung, ausgabenEingabe, aktualisiereUmrechnung } from './ausgaben.js';
 import { kursAusAntwort, kursVeraltet } from './ausgabenlogik.js';
-import { renderKarte } from './karte.js';
-import { renderThai, zeigeVollbild } from './thai.js';
-import { renderNotfall } from './notfall.js';
+import { seiteKarte } from './karte.js';
+import { seiteThai, zeigeVollbild } from './thai.js';
+import { seiteNotfall } from './notfall.js';
+import { seiteIdeen, ideenAktionen } from './ideen.js';
+import {
+  seiteTagebuch, tagebuchAktionen, tagebuchAenderung, tagebuchEingabe, ladeFotos,
+  fotosFuerBackup, fotosAusBackup,
+} from './tagebuch.js';
 import { e } from './ui.js';
 
-// Seite → welcher Knopf unten leuchtet
-const ANSICHTEN = {
-  heute: 'heute',
-  plan: 'plan',
-  ausgaben: 'ausgaben',
-  checkliste: 'listen',
-  packliste: 'listen',
-  mehr: 'mehr',
-  fristen: 'mehr',
-  karte: 'mehr',
-  thai: 'mehr',
-  notfall: 'mehr',
-  buchungen: 'mehr',
-  tipps: 'mehr',
-  daten: 'mehr',
-};
 const inhalt = document.getElementById('inhalt');
 const toastEl = document.getElementById('toast');
+const kopfTitel = document.getElementById('kopf-titel');
+const kopfZurueck = document.getElementById('kopf-zurueck');
 
 const state = {
   reise: null,
   meta: null,
   eigene: {},
-  ansicht: 'heute',
+  route: 'heute',
+  teile: [],
   vorschau: null,
-  packBearbeiten: null,
   ausgabenUi: {},
   karteUi: {},
   installPrompt: null,
+  fotoAnzahl: 0,
   dbFehler: false,
   offlineBereit: false,
   persistent: false,
@@ -71,90 +63,30 @@ function jetzt() {
   return t ? new Date(`${t}T12:00:00+07:00`) : new Date();
 }
 
-// ---------- Darstellung ----------
+// ---------- Seiten ----------
+// Jede Seite liefert { titel, zurueck?, html }. nav = welcher Knopf unten leuchtet.
 
-function wendeThemaAn() {
-  const t = einstellung('thema');
-  if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
-  else delete document.documentElement.dataset.theme;
-  requestAnimationFrame(() => {
-    const farbe = getComputedStyle(document.documentElement).getPropertyValue('--kopf').trim();
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', farbe || '#0b6e78');
-  });
-}
-
-function toast(text, aktion) {
-  toastEl.innerHTML = `<span>${e(text)}</span>${aktion ? `<button class="toast__knopf">${e(aktion.text)}</button>` : ''}`;
-  toastEl.hidden = false;
-  if (aktion) toastEl.querySelector('button').onclick = aktion.fn;
-  clearTimeout(toast.timer);
-  if (!aktion) toast.timer = setTimeout(() => { toastEl.hidden = true; }, 3500);
-}
-
-function banner() {
-  const teile = [];
-  if (state.dbFehler) {
-    teile.push('<div class="banner banner--fehler">⚠️ Der Speicher auf diesem Gerät ist nicht verfügbar. Änderungen gehen beim Schließen verloren.</div>');
-  }
-  if (testdatum()) {
-    teile.push(`<div class="banner banner--test">🧪 Testdatum aktiv: ${e(testdatum())} · <a href="#daten">ändern</a></div>`);
-  }
-  if (state.meta?.quelle !== 'import' && state.ansicht === 'heute') {
-    teile.push('<div class="banner">Du siehst Demo-Daten. <a href="#daten">Eigene Reisedaten importieren →</a></div>');
-  }
-  if (state.ansicht === 'heute' && backupFaellig()) {
-    teile.push('<div class="banner banner--test">💾 Dein letztes Backup ist über eine Woche her. <a href="#daten">Jetzt sichern →</a></div>');
-  }
-  if (state.ansicht === 'heute' && state.installPrompt && einstellung('installHinweisWeg') !== '1') {
-    teile.push('<div class="banner banner--install"><span>📲 Als App installieren – mit eigenem Symbol, Vollbild und offline.</span><span class="knopfreihe"><button class="knopf knopf--klein" data-aktion="installieren">Installieren</button><button class="knopf knopf--klein" data-aktion="install-weg">Später</button></span></div>');
-  }
-  return teile.join('');
-}
-
-let letzterSchluessel = '';
-function render() {
-  for (const a of document.querySelectorAll('[data-nav]')) {
-    const aktiv = a.dataset.nav === ANSICHTEN[state.ansicht];
-    a.classList.toggle('aktiv', aktiv);
-    if (aktiv) a.setAttribute('aria-current', 'page');
-    else a.removeAttribute('aria-current');
-  }
-  document.getElementById('kopf-titel').textContent = state.reise?.reise?.titel || 'Thailand 2026';
-
-  if (!state.reise) {
-    inhalt.innerHTML = `${banner()}<section class="karte"><p>Keine Daten vorhanden. Bitte unter <a href="#daten">Daten</a> deine reise-daten.json importieren.</p></section>`;
-    if (state.ansicht !== 'daten') return;
-  }
-
-  const r = state.reise;
-  if (state.ansicht === 'heute' && r) {
-    inhalt.innerHTML = banner() + renderHeute(r, jetzt(), state.eigene);
-    aktualisiereTicker(inhalt, jetzt());
-  } else if (state.ansicht === 'plan' && r) {
-    inhalt.innerHTML = banner() + renderPlan(r, jetzt(), state.eigene);
-  } else if (state.ansicht === 'ausgaben' && r) {
-    inhalt.innerHTML = banner() + renderAusgaben(r, state.eigene, jetzt(), state.ausgabenUi);
-    aktualisiereUmrechnung(inhalt, r, state.eigene);
-  } else if (state.ansicht === 'karte' && r) {
-    inhalt.innerHTML = banner() + renderKarte(r, jetzt(), state.karteUi);
-  } else if (state.ansicht === 'thai') {
-    inhalt.innerHTML = banner() + renderThai({ hoeflich: einstellung('hoeflich'), allergie: Number(einstellung('allergie')) || 0 });
-  } else if (state.ansicht === 'notfall' && r) {
-    inhalt.innerHTML = banner() + renderNotfall(r, jetzt());
-  } else if (state.ansicht === 'fristen' && r) {
-    inhalt.innerHTML = banner() + renderFristen(r, jetzt());
-  } else if (state.ansicht === 'checkliste' && r) {
-    inhalt.innerHTML = banner() + renderCheckliste(r, state.eigene, { ausblenden: einstellung('ausblenden') === '1' });
-  } else if (state.ansicht === 'packliste') {
-    inhalt.innerHTML = banner() + renderPackliste(state.eigene, { bearbeiten: state.packBearbeiten });
-  } else if (state.ansicht === 'mehr') {
-    inhalt.innerHTML = banner() + renderMehr(r);
-  } else if (state.ansicht === 'buchungen' && r) {
-    inhalt.innerHTML = banner() + renderBuchungen(r);
-  } else if (state.ansicht === 'tipps' && r) {
-    inhalt.innerHTML = banner() + renderTipps(r);
-  } else if (state.ansicht === 'daten') {
-    inhalt.innerHTML = banner() + renderDaten({
+const r = () => state.reise;
+const ROUTEN = {
+  heute: { nav: 'heute', seite: () => ({ titel: r()?.reise?.titel || 'Thailand', html: renderHeute(r(), jetzt(), state.eigene) }) },
+  plan: { nav: 'plan', seite: () => seitePlan(r(), state.eigene, jetzt()) },
+  tag: { nav: 'plan', seite: (t) => seiteTag(r(), state.eigene, jetzt(), t[0]) },
+  ausgaben: { nav: 'ausgaben', seite: (t) => seiteAusgaben(r(), state.eigene, jetzt(), t, state.ausgabenUi) },
+  tagebuch: { nav: 'tagebuch', seite: (t) => seiteTagebuch(r(), state.eigene, jetzt(), t) },
+  mehr: { nav: 'mehr', seite: () => seiteMehr(r(), state.eigene) },
+  checkliste: { nav: 'mehr', seite: (t) => seiteCheckliste(r(), state.eigene, t, { ausblenden: einstellung('ausblenden') === '1' }) },
+  packliste: { nav: 'mehr', seite: (t) => seitePackliste(state.eigene, t), ohneDaten: true },
+  fristen: { nav: 'mehr', seite: () => seiteFristen(r(), jetzt()) },
+  buchungen: { nav: 'mehr', seite: () => seiteBuchungen(r()) },
+  tipps: { nav: 'mehr', seite: (t) => seiteTipps(r(), t) },
+  karte: { nav: 'mehr', seite: () => seiteKarte(r(), jetzt(), state.karteUi) },
+  thai: { nav: 'mehr', seite: (t) => seiteThai({ hoeflich: einstellung('hoeflich'), allergie: Number(einstellung('allergie')) || 0 }, t), ohneDaten: true },
+  notfall: { nav: 'mehr', seite: () => seiteNotfall(r(), jetzt()) },
+  ideen: { nav: 'mehr', seite: (t) => seiteIdeen(r(), state.eigene, t) },
+  daten: {
+    nav: 'mehr',
+    ohneDaten: true,
+    seite: () => seiteDaten({
       meta: state.meta,
       zusammenfassung: state.reise ? zusammenfassung(state.reise) : null,
       vorschau: state.vorschau,
@@ -166,34 +98,137 @@ function render() {
       version: VERSION,
       kannInstallieren: !!state.installPrompt,
       installiert: istInstalliert(),
-    });
+      fotoAnzahl: state.fotoAnzahl,
+      letztesBackup: einstellung('backupAm'),
+    }),
+  },
+};
+
+// ---------- Darstellung ----------
+
+function wendeThemaAn() {
+  const t = einstellung('thema');
+  if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+  else delete document.documentElement.dataset.theme;
+  requestAnimationFrame(() => {
+    const farbe = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', farbe || '#ffffff');
+  });
+}
+
+function toast(text, aktion) {
+  toastEl.innerHTML = `<span>${e(text)}</span>${aktion ? `<button class="toast__knopf">${e(aktion.text)}</button>` : ''}`;
+  toastEl.hidden = false;
+  if (aktion) toastEl.querySelector('button').onclick = aktion.fn;
+  clearTimeout(toast.timer);
+  if (!aktion) toast.timer = setTimeout(() => { toastEl.hidden = true; }, 3000);
+}
+
+function banner() {
+  const teile = [];
+  if (state.dbFehler) {
+    teile.push('<div class="banner banner--fehler">⚠️ Der Speicher auf diesem Gerät ist nicht verfügbar. Änderungen gehen beim Schließen verloren.</div>');
   }
+  if (testdatum()) {
+    teile.push(`<a class="banner banner--test" href="#daten">🧪 Testdatum ${e(testdatum())} aktiv – antippen zum Ändern</a>`);
+  }
+  if (state.route !== 'heute') return teile.join('');
+  if (state.meta?.quelle !== 'import') {
+    teile.push('<a class="banner" href="#daten">Du siehst Demo-Daten. <b>Eigene Reisedaten importieren ›</b></a>');
+  } else if (backupFaellig()) {
+    teile.push('<a class="banner" href="#daten">💾 Letztes Backup ist über eine Woche her. <b>Jetzt sichern ›</b></a>');
+  }
+  if (state.installPrompt && einstellung('installHinweisWeg') !== '1') {
+    teile.push('<div class="banner banner--install"><span>📲 Als App installieren – eigenes Symbol, Vollbild, offline.</span><span class="feldreihe"><button class="knopf knopf--klein knopf--haupt" data-aktion="installieren">Installieren</button><button class="knopf knopf--klein" data-aktion="install-weg">Später</button></span></div>');
+  }
+  return teile.join('');
+}
+
+let letzterSchluessel = '';
+function render() {
+  const route = ROUTEN[state.route] ?? ROUTEN.heute;
+  for (const a of document.querySelectorAll('[data-nav]')) {
+    const aktiv = a.dataset.nav === route.nav;
+    a.classList.toggle('aktiv', aktiv);
+    if (aktiv) a.setAttribute('aria-current', 'page');
+    else a.removeAttribute('aria-current');
+  }
+
+  let seite;
+  if (!state.reise && !route.ohneDaten) {
+    seite = { titel: 'Thailand', html: '<p class="leer">Keine Daten vorhanden. Bitte unter <a href="#daten">Daten & Backup</a> deine reise-daten.json importieren.</p>' };
+  } else {
+    try {
+      seite = route.seite(state.teile);
+    } catch (fehler) {
+      console.error(fehler);
+      seite = { titel: 'Fehler', zurueck: '#heute', html: '<p class="leer">Diese Seite konnte nicht angezeigt werden.</p>' };
+    }
+  }
+
+  kopfTitel.textContent = seite.titel ?? '';
+  kopfZurueck.hidden = !seite.zurueck;
+  kopfZurueck.dataset.ziel = seite.zurueck ?? '';
+  document.title = seite.titel ? `${seite.titel} · Thailand` : 'Thailand';
+  inhalt.innerHTML = banner() + seite.html;
+
+  if (state.route === 'heute') aktualisiereTicker(inhalt, jetzt());
+  if (state.route === 'ausgaben') aktualisiereUmrechnung(inhalt, state.reise, state.eigene);
+  if (inhalt.querySelector('img[data-foto]')) ladeFotos(inhalt);
   letzterSchluessel = schluessel();
 }
 
-/** Ändert sich etwas Sichtbares auf „Heute“ (Datum, Minute)? Dann neu zeichnen. */
+/** Ändert sich etwas Sichtbares auf „Heute“ (Minute)? Dann neu zeichnen. */
 function schluessel() {
-  const j = jetzt();
-  return `${state.ansicht}|${j.toISOString().slice(0, 16)}`;
+  return `${state.route}|${jetzt().toISOString().slice(0, 16)}`;
 }
 
+// ---------- Navigation mit Zurück & Scroll-Position ----------
+
+const verlauf = [];
+const scrollPos = new Map();
+let aktuellerHash = '';
+let naechsterErsetzt = false;
+
 function zeigeAnsicht() {
-  let ziel = location.hash.replace('#', '');
-  if (ziel === 'listen') ziel = einstellung('listenTab') === 'packliste' ? 'packliste' : 'checkliste';
-  if (ziel === 'checkliste' || ziel === 'packliste') setzeEinstellung('listenTab', ziel);
-  state.ansicht = ziel in ANSICHTEN ? ziel : 'heute';
-  state.packBearbeiten = null;
-  state.ausgabenUi.bearbeiten = null;
-  state.ausgabenUi.alleZeigen = false;
+  const hash = location.hash || '#heute';
+  if (aktuellerHash) scrollPos.set(aktuellerHash, window.scrollY);
+
+  const zurueckGegangen = !naechsterErsetzt && verlauf.length >= 2 && verlauf[verlauf.length - 2] === hash;
+  if (naechsterErsetzt && verlauf.length) verlauf[verlauf.length - 1] = hash;
+  else if (zurueckGegangen) verlauf.pop();
+  else verlauf.push(hash);
+  naechsterErsetzt = false;
+  aktuellerHash = hash;
+
+  const [name, ...teile] = hash.slice(1).split('/').map(decodeURIComponent);
+  state.route = name in ROUTEN ? name : 'heute';
+  state.teile = teile.filter(Boolean);
+  if (state.route !== 'daten') state.vorschau = null;
+
   render();
-  window.scrollTo(0, 0);
-  inhalt.classList.remove('einblenden');
-  void inhalt.offsetWidth;
-  inhalt.classList.add('einblenden');
-  if (state.ansicht === 'plan') {
-    inhalt.querySelector('[data-heute]')?.scrollIntoView({ block: 'center' });
+  window.scrollTo(0, zurueckGegangen ? (scrollPos.get(hash) ?? 0) : 0);
+  if (!zurueckGegangen) {
+    inhalt.classList.remove('einblenden');
+    void inhalt.offsetWidth;
+    inhalt.classList.add('einblenden');
   }
+  if (state.route === 'plan' && !zurueckGegangen) inhalt.querySelector('[data-heute]')?.scrollIntoView({ block: 'center' });
+  if (state.route === 'ausgaben' && state.teile[0] === 'neu') inhalt.querySelector('#ausgabe-betrag')?.focus();
 }
+
+/** Eine Ebene zurück – wie die Zurück-Taste, sonst direkt zur übergeordneten Seite. */
+function zurueck(ziel) {
+  if (verlauf.length >= 2) history.back();
+  else ersetzeHash(ziel || '#heute');
+}
+
+function ersetzeHash(ziel) {
+  naechsterErsetzt = true;
+  location.replace(ziel);
+}
+
+kopfZurueck.addEventListener('click', () => zurueck(kopfZurueck.dataset.ziel));
 
 // ---------- Eigene Einträge speichern ----------
 
@@ -257,21 +292,25 @@ function speichereDatei(datei) {
   document.body.append(a);
   a.click();
   a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 10000);
-  toast(`Gespeichert als ${datei.name} (im Ordner „Downloads“)`);
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+  toast(`Gespeichert als ${datei.name} (Ordner „Downloads“)`);
 }
 
-const ctx = { state, render, toast: (t) => toast(t), speichereEigene, jetzt, holeKurs, vibriere, speichereDatei };
+const ctx = {
+  state, render, jetzt, holeKurs, vibriere, speichereDatei, speichereEigene, zurueck,
+  toast: (t) => toast(t),
+  dauerhaftAnfragen: () => dauerhaftAnfragen(),
+};
 
 // ---------- Backup-Erinnerung & Installation ----------
 
 function backupFaellig() {
   const e2 = state.eigene ?? {};
-  const hatEintraege = (e2.ausgaben?.length ?? 0) + Object.keys(e2.checkliste ?? {}).length + (e2.packliste?.length ?? 0) > 0;
+  const hatEintraege = (e2.ausgaben?.length ?? 0) + Object.keys(e2.checkliste ?? {}).length
+    + (e2.packliste?.length ?? 0) + Object.keys(e2.tagebuch ?? {}).length > 0;
   if (!hatEintraege || state.meta?.quelle !== 'import') return false;
   const zuletzt = Date.parse(einstellung('backupAm') ?? '');
   if (!Number.isFinite(zuletzt)) {
-    // Erst erinnern, wenn seit dem Import eine Woche vergangen ist
     const importiert = Date.parse(state.meta?.importiertAm ?? '');
     return Number.isFinite(importiert) && Date.now() - importiert > 7 * 86400000;
   }
@@ -285,7 +324,7 @@ function istInstalliert() {
 window.addEventListener('beforeinstallprompt', (ev) => {
   ev.preventDefault();
   state.installPrompt = ev;
-  if (state.ansicht === 'heute' || state.ansicht === 'daten') render();
+  if (state.route === 'heute' || state.route === 'daten') render();
 });
 
 window.addEventListener('appinstalled', () => {
@@ -311,6 +350,10 @@ async function ladeDemo() {
   return antwort.json();
 }
 
+async function zaehleFotos() {
+  try { state.fotoAnzahl = (await db.alleFotos()).length; } catch { state.fotoAnzahl = 0; }
+}
+
 async function ladeDaten() {
   try {
     state.reise = (await db.lies('reise')) ?? null;
@@ -328,6 +371,7 @@ async function ladeDaten() {
       state.reise = null;
     }
   }
+  zaehleFotos();
 }
 
 // ---------- Import ----------
@@ -342,10 +386,11 @@ async function dateiGewaehlt(datei) {
     render();
     return;
   }
-  const { reise, eigene } = trenneImport(obj ?? {});
-  const pruefung = pruefeReiseDaten(obj && typeof obj === 'object' && !Array.isArray(obj) ? reise : obj);
+  const istObjekt = obj && typeof obj === 'object' && !Array.isArray(obj);
+  const { reise, eigene, fotos } = trenneImport(istObjekt ? obj : {});
+  const pruefung = pruefeReiseDaten(istObjekt ? reise : obj);
   state.vorschau = pruefung.ok
-    ? { dateiname: datei.name, obj, warnungen: pruefung.warnungen, zusammenfassung: zusammenfassung(reise), mitEigenen: !!eigene }
+    ? { dateiname: datei.name, obj, warnungen: pruefung.warnungen, zusammenfassung: zusammenfassung(reise), mitEigenen: !!eigene, fotoAnzahl: Object.keys(fotos ?? {}).length }
     : { dateiname: datei.name, fehler: pruefung.fehler };
   render();
 }
@@ -353,7 +398,7 @@ async function dateiGewaehlt(datei) {
 async function importUebernehmen() {
   const v = state.vorschau;
   if (!v?.obj) return;
-  const { reise, eigene } = trenneImport(v.obj);
+  const { reise, eigene, fotos } = trenneImport(v.obj);
   const meta = { quelle: 'import', dateiname: v.dateiname, importiertAm: new Date().toISOString() };
   try {
     await db.schreibe('reise', reise);
@@ -367,21 +412,29 @@ async function importUebernehmen() {
   state.meta = meta;
   if (eigene) state.eigene = eigene;
   state.vorschau = null;
+  if (fotos && Object.keys(fotos).length) {
+    toast('Fotos werden wiederhergestellt …');
+    const n = await fotosAusBackup(fotos);
+    await zaehleFotos();
+    toast(`Importiert ✓ – ${n} Fotos wiederhergestellt`);
+  } else {
+    toast('Reisedaten importiert ✓');
+  }
   await dauerhaftAnfragen();
-  toast('Reisedaten importiert ✓');
   location.hash = '#heute';
-  zeigeAnsicht();
 }
 
 async function demoZurueck() {
-  const ok = confirm('Wirklich alles löschen? Deine importierten Reisedaten und Einträge werden von diesem Handy entfernt.\n\nTipp: Vorher ein Backup speichern!');
+  const ok = confirm('Wirklich alles löschen? Deine Reisedaten, Einträge und Fotos werden von diesem Handy entfernt.\n\nTipp: Vorher ein Backup speichern!');
   if (!ok) return;
   try {
     await db.loesche('reise');
     await db.loesche('meta');
     await db.loesche('eigene');
+    await db.fotosLeeren();
   } catch { /* egal */ }
   state.eigene = {};
+  state.fotoAnzahl = 0;
   try {
     state.reise = await ladeDemo();
     state.meta = { quelle: 'demo' };
@@ -395,38 +448,41 @@ async function demoZurueck() {
 
 // ---------- Export ----------
 
-function backupDatei(typ = 'application/json') {
-  const json = JSON.stringify(baueExport(state.reise, state.eigene), null, 2);
+async function backupDatei(mitFotos, typ = 'application/json') {
+  const fotos = mitFotos ? await fotosFuerBackup() : null;
+  const json = JSON.stringify(baueExport(state.reise, state.eigene, new Date(), fotos), null, mitFotos ? 0 : 2);
   return new File([json], backupDateiname(), { type: typ });
 }
 
-function teilbareDatei() {
+function teilbar() {
   if (!navigator.canShare) return null;
   for (const typ of ['application/json', 'text/plain']) {
-    const f = backupDatei(typ);
-    try { if (navigator.canShare({ files: [f] })) return f; } catch { /* nächster Typ */ }
+    try {
+      if (navigator.canShare({ files: [new File(['{}'], 'test.json', { type: typ })] })) return typ;
+    } catch { /* nächster Typ */ }
   }
   return null;
 }
 
 function kannTeilen() {
-  return !!state.reise && !!teilbareDatei();
+  return !!state.reise && !!teilbar();
 }
 
-function exportDownload() {
+async function exportDownload(mitFotos) {
   if (!state.reise) return;
-  speichereDatei(backupDatei());
+  if (mitFotos && state.fotoAnzahl) toast('Backup wird erstellt …');
+  speichereDatei(await backupDatei(mitFotos));
   setzeEinstellung('backupAm', new Date().toISOString());
 }
 
 async function exportTeilen() {
-  const datei = teilbareDatei();
-  if (!datei) return exportDownload();
+  const typ = teilbar();
+  if (!typ) return exportDownload(true);
   try {
-    await navigator.share({ files: [datei], title: 'Thailand-Backup' });
+    await navigator.share({ files: [await backupDatei(true, typ)], title: 'Thailand-Backup' });
     setzeEinstellung('backupAm', new Date().toISOString());
   } catch (err) {
-    if (err?.name !== 'AbortError') toast('Teilen hat nicht geklappt – nutze „Herunterladen“.');
+    if (err?.name !== 'AbortError') toast('Teilen hat nicht geklappt – nutze „Backup speichern“.');
   }
 }
 
@@ -444,11 +500,7 @@ async function offlineEinrichten() {
   state.offlineBereit = hatteController;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     state.offlineBereit = true;
-    if (hatteController) {
-      toast('Neue Version ist da.', { text: 'Neu laden', fn: () => location.reload() });
-    } else if (state.ansicht === 'daten') {
-      render();
-    }
+    if (hatteController) toast('Neue Version ist da.', { text: 'Neu laden', fn: () => location.reload() });
   });
   try {
     const reg = await navigator.serviceWorker.register('./sw.js');
@@ -459,71 +511,82 @@ async function offlineEinrichten() {
 }
 
 function onlineStatus() {
-  const el = document.getElementById('kopf-status');
-  el.textContent = navigator.onLine ? '' : 'Offline';
-  el.hidden = navigator.onLine;
+  document.getElementById('kopf-status').hidden = navigator.onLine;
 }
 
 // ---------- Ereignisse ----------
 
-inhalt.addEventListener('click', (ev) => {
-  const aktion = ev.target.closest('[data-aktion]')?.dataset.aktion;
-  if (!aktion) return;
-  ({
-    'import-ok': importUebernehmen,
-    'import-abbrechen': () => { state.vorschau = null; render(); },
-    'export-download': exportDownload,
-    'export-teilen': exportTeilen,
-    'demo-zurueck': demoZurueck,
-    'testdatum-weg': () => { setzeEinstellung('testdatum', null); render(); },
-    installieren,
-    'install-weg': () => { setzeEinstellung('installHinweisWeg', '1'); render(); },
-  })[aktion]?.();
-  const el = ev.target.closest('[data-aktion]');
-  listenAktionen[aktion]?.(el, ctx);
-  ausgabenAktionen[aktion]?.(el, ctx);
-  if (aktion === 'karte-ort') {
+const APP_AKTIONEN = {
+  'import-ok': importUebernehmen,
+  'import-abbrechen': () => { state.vorschau = null; render(); },
+  'export-download': (el) => exportDownload(el.dataset.fotos !== '0'),
+  'export-teilen': exportTeilen,
+  'demo-zurueck': demoZurueck,
+  'testdatum-weg': () => { setzeEinstellung('testdatum', null); render(); },
+  installieren,
+  'install-weg': () => { setzeEinstellung('installHinweisWeg', '1'); render(); },
+  'karte-ort': (el) => {
     state.karteUi.ort = state.karteUi.ort === el.dataset.ort ? null : el.dataset.ort;
     render();
-    if (state.karteUi.ort) inhalt.querySelector('.karte--morgen')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  } else if (aktion === 'thai-zeigen') {
+    if (state.karteUi.ort) inhalt.querySelector('.ortdetail')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  },
+  'thai-zeigen': (el) => {
     vibriere();
     zeigeVollbild(el.dataset.de, el.dataset.thai, el.dataset.laut);
+  },
+};
+const MODUL_AKTIONEN = [listenAktionen, ausgabenAktionen, ideenAktionen, tagebuchAktionen];
+
+inhalt.addEventListener('click', (ev) => {
+  const ersetzen = ev.target.closest('a[data-ersetzen]');
+  if (ersetzen) {
+    ev.preventDefault();
+    ersetzeHash(ersetzen.getAttribute('href'));
+    return;
   }
+  const el = ev.target.closest('[data-aktion]');
+  if (!el) return;
+  const aktion = el.dataset.aktion;
+  // Löschen-Knöpfe in Zeilen mit Häkchen sollen das Häkchen nicht umschalten
+  if (el.closest('label') && el.tagName !== 'LABEL') ev.preventDefault();
+  APP_AKTIONEN[aktion]?.(el, ev);
+  for (const m of MODUL_AKTIONEN) m[aktion]?.(el, ctx, ev);
 });
 
 inhalt.addEventListener('keydown', (ev) => {
-  // Kartenorte (SVG) per Tastatur bedienbar; Enter im Betragsfeld speichert
-  if (ev.key === 'Enter' && ev.target.matches?.('g[data-aktion]')) ev.target.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-  if (ev.key === 'Enter' && (ev.target.id === 'ausgabe-betrag' || ev.target.id === 'ausgabe-notiz')) {
+  if (ev.key !== 'Enter') return;
+  if (ev.target.matches?.('g[data-aktion]')) ev.target.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  if (ev.target.id === 'ausgabe-betrag' || ev.target.id === 'ausgabe-notiz') {
     ev.preventDefault();
     ausgabenAktionen['ausgabe-speichern'](null, ctx);
   }
 });
 
 inhalt.addEventListener('input', (ev) => {
-  if (ev.target.id === 'ausgabe-betrag' || ev.target.name === 'waehrung') aktualisiereUmrechnung(inhalt, state.reise, state.eigene);
+  if (tagebuchEingabe(ev.target, ctx)) return;
+  ausgabenEingabe(ev.target, ctx);
 });
 
-inhalt.addEventListener('change', (ev) => {
+inhalt.addEventListener('change', async (ev) => {
   const t = ev.target;
   if (listenAenderung(t, ctx)) return;
-  if (state.ansicht === 'ausgaben' && ausgabenAenderung(t, ctx)) return;
-  if (t.name === 'hoeflich') {
-    setzeEinstellung('hoeflich', t.value);
-    render();
-    return;
-  }
-  if (t.id === 'allergie') {
-    setzeEinstellung('allergie', t.value);
-    render();
+  if (state.route === 'ausgaben' && ausgabenAenderung(t, ctx)) return;
+  if (state.route === 'tagebuch' && await tagebuchAenderung(t, ctx)) {
+    zaehleFotos();
     return;
   }
   if (t.dataset.einstellung === 'ausblenden') {
     setzeEinstellung('ausblenden', t.checked ? '1' : null);
     render();
-  } else if (t.id === 'import-datei') dateiGewaehlt(t.files?.[0]);
-  else if (t.name === 'thema') {
+  } else if (t.name === 'hoeflich') {
+    setzeEinstellung('hoeflich', t.value);
+    render();
+  } else if (t.id === 'allergie') {
+    setzeEinstellung('allergie', t.value);
+    render();
+  } else if (t.id === 'import-datei') {
+    dateiGewaehlt(t.files?.[0]);
+  } else if (t.name === 'thema') {
     setzeEinstellung('thema', t.value === 'system' ? null : t.value);
     wendeThemaAn();
   } else if (t.id === 'testdatum') {
@@ -535,17 +598,17 @@ inhalt.addEventListener('change', (ev) => {
 window.addEventListener('hashchange', zeigeAnsicht);
 window.addEventListener('online', () => {
   onlineStatus();
-  holeKurs().then((neu) => { if (neu && state.ansicht === 'ausgaben') render(); });
+  holeKurs().then((neu) => { if (neu && state.route === 'ausgaben') render(); });
 });
 window.addEventListener('offline', onlineStatus);
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible') return;
-  if (state.ansicht === 'heute') render();
+  if (state.route === 'heute') render();
   holeKurs();
 });
 
 setInterval(() => {
-  if (state.ansicht !== 'heute' || document.hidden) return;
+  if (state.route !== 'heute' || document.hidden) return;
   if (schluessel() !== letzterSchluessel) render();
   else aktualisiereTicker(inhalt, jetzt());
 }, 1000);
@@ -559,5 +622,5 @@ setInterval(() => {
   await ladeDaten();
   try { state.persistent = (await navigator.storage?.persisted?.()) ?? false; } catch { /* egal */ }
   zeigeAnsicht();
-  holeKurs().then((neu) => { if (neu && state.ansicht === 'ausgaben') render(); });
+  holeKurs().then((neu) => { if (neu && state.route === 'ausgaben') render(); });
 })();

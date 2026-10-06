@@ -1,5 +1,6 @@
 // Thai-Spickzettel mit Vollbild-„Zeigen“-Modus.
 import { e } from './ui.js';
+import { liste } from './bausteine.js';
 
 // Höflichkeitswort am Satzende: Männer sagen „khrap“, Frauen „kha“.
 const HOEFLICH = {
@@ -106,58 +107,79 @@ function satzKnopf(de, thai, laut) {
     </button>`;
 }
 
-export function renderThai(ui) {
+export function seiteThai(ui, teile) {
   const modus = ['khrap', 'kha', 'beide', 'aus'].includes(ui.hoeflich) ? ui.hoeflich : 'beide';
-  const allergie = ALLERGIEN[ui.allergie ?? 0] ?? ALLERGIEN[0];
-  const allergieSatz = mitHoeflich(`แพ้${allergie[1]}`, `pháe ${allergie[2]}`, true, modus);
-  return `
-    <a class="zurueck" href="#mehr">‹ Zurück</a>
-    <h1 class="seitentitel">Thai-Spickzettel</h1>
-    <p class="leise klein seitenhinweis">Tippe auf einen Satz, um ihn groß zum Zeigen anzuzeigen.</p>
+  const thema = teile[0];
 
-    <section class="karte">
-      <h2>Höflichkeitswort am Satzende</h2>
-      <div class="segment segment--4" role="radiogroup" aria-label="Höflichkeitswort">
-        ${[['khrap', 'khráp'], ['kha', 'khâ'], ['beide', 'beide'], ['aus', 'ohne']].map(([w, t]) => `
-          <label class="segment__teil"><input type="radio" name="hoeflich" value="${w}" ${modus === w ? 'checked' : ''}><span>${t}</span></label>`).join('')}
-      </div>
-      <p class="leise klein">Männer sagen „khráp“ (ครับ), Frauen „khâ“ (ค่ะ) – macht jeden Satz höflich.</p>
-    </section>
+  if (thema === 'allergie') {
+    const allergie = ALLERGIEN[ui.allergie ?? 0] ?? ALLERGIEN[0];
+    const allergieSatz = mitHoeflich(`แพ้${allergie[1]}`, `pháe ${allergie[2]}`, true, modus);
+    return {
+      titel: 'Allergie',
+      zurueck: '#thai',
+      html: `
+        <label class="feld"><span>Ich bin allergisch gegen …</span>
+          <select class="eingabe" id="allergie">
+            ${ALLERGIEN.map(([de], i) => `<option value="${i}" ${i === (ui.allergie ?? 0) ? 'selected' : ''}>${e(de)}</option>`).join('')}
+          </select>
+        </label>
+        <div class="saetze">
+          ${satzKnopf(`Ich bin allergisch gegen ${allergie[0]}`, allergieSatz.thai, allergieSatz.laut)}
+          ${satzKnopf(`Bitte ohne ${allergie[0]}`, `ไม่ใส่${allergie[1]}`, `mâi sài ${allergie[2]}`)}
+        </div>`,
+    };
+  }
 
-    ${SAETZE.map((g, i) => `
-      <details class="karte aufklapp" ${i === 0 ? 'open' : ''}>
-        <summary>${g.icon} ${e(g.gruppe)}</summary>
+  if (thema === 'zahlen') {
+    return {
+      titel: 'Zahlen',
+      zurueck: '#thai',
+      html: `
+        <div class="zahlenraster">
+          ${ZAHLEN.map(([z, thai, laut]) => `
+            <button class="zahl" data-aktion="thai-zeigen" data-de="${z.toLocaleString('de-DE')}" data-thai="${e(thai)}" data-laut="${e(laut)}">
+              <b>${z.toLocaleString('de-DE')}</b><span lang="th">${e(thai)}</span><small>${e(laut)}</small>
+            </button>`).join('')}
+        </div>
+        <p class="leise klein zentriert">Tipp: Preise einfach in den Taschenrechner tippen und zeigen.</p>`,
+    };
+  }
+
+  const nr = thema != null ? Number(thema) : null;
+  if (nr != null && SAETZE[nr]) {
+    const g = SAETZE[nr];
+    return {
+      titel: g.gruppe,
+      zurueck: '#thai',
+      html: `
+        <p class="leise klein">Tippe auf einen Satz, um ihn groß zum Zeigen anzuzeigen.</p>
         <div class="saetze">
           ${g.saetze.map(([de, thai, laut, h]) => {
-            const s = mitHoeflich(thai, laut, h, modus);
-            return satzKnopf(de, s.thai, s.laut);
+            const s2 = mitHoeflich(thai, laut, h, modus);
+            return satzKnopf(de, s2.thai, s2.laut);
           }).join('')}
+        </div>`,
+    };
+  }
+
+  return {
+    titel: 'Thai-Spickzettel',
+    zurueck: '#mehr',
+    html: `
+      ${liste([
+        ...SAETZE.map((g, i) => ({ href: `#thai/${i}`, icon: g.icon, titel: g.gruppe, wert: `${g.saetze.length}` })),
+        { href: '#thai/allergie', icon: '⚠️', titel: 'Allergie' },
+        { href: '#thai/zahlen', icon: '🔢', titel: 'Zahlen' },
+      ])}
+      <section class="abschnitt">
+        <h2 class="label">Höflichkeitswort am Satzende</h2>
+        <div class="segment segment--4" role="radiogroup" aria-label="Höflichkeitswort">
+          ${[['khrap', 'khráp'], ['kha', 'khâ'], ['beide', 'beide'], ['aus', 'ohne']].map(([w, t]) => `
+            <label class="segment__teil"><input type="radio" name="hoeflich" value="${w}" ${modus === w ? 'checked' : ''}><span>${t}</span></label>`).join('')}
         </div>
-      </details>`).join('')}
-
-    <details class="karte aufklapp" open>
-      <summary>⚠️ Allergie</summary>
-      <label class="feld"><span>Ich bin allergisch gegen …</span>
-        <select class="eingabe" id="allergie">
-          ${ALLERGIEN.map(([de], i) => `<option value="${i}" ${i === (ui.allergie ?? 0) ? 'selected' : ''}>${e(de)}</option>`).join('')}
-        </select>
-      </label>
-      <div class="saetze">
-        ${satzKnopf(`Ich bin allergisch gegen ${allergie[0]}`, allergieSatz.thai, allergieSatz.laut)}
-        ${satzKnopf(`Bitte ohne ${allergie[0]}`, `ไม่ใส่${allergie[1]}`, `mâi sài ${allergie[2]}`)}
-      </div>
-    </details>
-
-    <details class="karte aufklapp">
-      <summary>🔢 Zahlen</summary>
-      <div class="zahlenraster">
-        ${ZAHLEN.map(([z, thai, laut]) => `
-          <button class="zahl" data-aktion="thai-zeigen" data-de="${z.toLocaleString('de-DE')}" data-thai="${e(thai)}" data-laut="${e(laut)}">
-            <b>${z.toLocaleString('de-DE')}</b><span lang="th">${e(thai)}</span><small>${e(laut)}</small>
-          </button>`).join('')}
-      </div>
-      <p class="leise klein">Tipp: Preise einfach in den Taschenrechner tippen und zeigen.</p>
-    </details>`;
+        <p class="leise klein">Männer sagen „khráp“ (ครับ), Frauen „khâ“ (ค่ะ) – macht jeden Satz höflich.</p>
+      </section>`,
+  };
 }
 
 /** Vollbild-Anzeige zum Zeigen. */

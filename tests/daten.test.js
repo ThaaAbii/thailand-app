@@ -36,3 +36,13 @@ test('Normale reise-daten.json hat keine eigenen Einträge', () => {
   assert.equal(trenneImport(demo).eigene, null);
   assert.equal(zusammenfassung(demo).tage, 24);
 });
+
+test('Backup mit Fotos: Fotos kommen beim Import wieder heraus', () => {
+  const fotos = { f1: { d: '2026-11-21', data: 'data:image/jpeg;base64,AAAA' } };
+  const backup = JSON.parse(JSON.stringify(baueExport(demo, { tagebuch: { '2026-11-21': { fotos: ['f1'] } } }, new Date(), fotos)));
+  const { reise, eigene, fotos: zurueck } = trenneImport(backup);
+  assert.deepEqual(zurueck, fotos);
+  assert.deepEqual(eigene.tagebuch['2026-11-21'].fotos, ['f1']);
+  assert.equal(pruefeReiseDaten(reise).ok, true);
+  assert.equal(trenneImport(baueExport(demo, {})).fotos, null);
+});

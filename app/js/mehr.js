@@ -1,76 +1,81 @@
-// „Mehr“: Buchungen, Tipps, Daten & Backup.
+// „Mehr“: aufgeräumtes Menü + Buchungen und Tipps.
 import { e } from './ui.js';
-import { unterseitenKopf } from './bausteine.js';
+import { liste, abschnitt, held, leer } from './bausteine.js';
+import { checklistenGruppen, fortschritt, packSummen, formatKg } from './listenlogik.js';
 
-export function renderMehr(daten) {
-  const kachel = (href, icon, titel, text) => `
-    <a class="kachel" href="${href}">
-      <span class="kachel__icon" aria-hidden="true">${icon}</span>
-      <span><b>${titel}</b><small>${text}</small></span>
-      <span class="kachel__pfeil" aria-hidden="true">›</span>
-    </a>`;
-  const nb = Array.isArray(daten?.buchungen) ? daten.buchungen.length : 0;
-  const nt = (Array.isArray(daten?.tipps) ? daten.tipps : []).reduce((n, g) => n + (g?.tipps?.length ?? 0), 0);
+export function seiteMehr(daten, eigene) {
+  const fc = fortschritt(checklistenGruppen(daten, eigene).flatMap((g) => g.punkte));
+  const pack = Array.isArray(eigene?.packliste) ? eigene.packliste : null;
   const nf = (Array.isArray(daten?.fristen) ? daten.fristen : []).filter((f) => Date.parse(f?.t) > Date.now()).length;
-  return `
-    <h1 class="seitentitel">Mehr</h1>
-    <div class="kacheln">
-      <a class="kachel kachel--notfall" href="#notfall">
-        <span class="kachel__icon" aria-hidden="true">🆘</span>
-        <span><b>Notfall</b><small>Notrufe, Versicherung, Botschaft</small></span>
-        <span class="kachel__pfeil" aria-hidden="true">›</span>
-      </a>
-      ${kachel('#thai', '🇹🇭', 'Thai-Spickzettel', 'Sätze zum Zeigen, z. B. „ohne Schweinefleisch“')}
-      ${kachel('#karte', '🗺️', 'Routenkarte', 'Deine Route durch Südthailand – offline')}
-      ${kachel('#fristen', '⏰', 'Fristen', `${nf} offene Fristen`)}
-      ${kachel('#buchungen', '🧾', 'Buchungen', `${nb} Buchungen mit Storno-Status`)}
-      ${kachel('#tipps', '💡', 'Tipps', `${nt} Tipps für unterwegs`)}
-      ${kachel('#daten', '💾', 'Daten & Backup', 'Import, Export, Darstellung, Testdatum')}
-    </div>`;
+  return {
+    titel: 'Mehr',
+    html: `
+      ${abschnitt('Unterwegs', liste([
+        { href: '#notfall', icon: '🆘', titel: 'Notfall', unter: 'Notrufe, Versicherung, Botschaft' },
+        { href: '#thai', icon: '🗣️', titel: 'Thai-Spickzettel' },
+        { href: '#ideen', icon: '💡', titel: 'Ausflugsideen' },
+        { href: '#karte', icon: '🗺️', titel: 'Routenkarte' },
+      ]))}
+      ${abschnitt('Vorbereitung', liste([
+        { href: '#checkliste', icon: '✅', titel: 'Checkliste', wert: fc.gesamt ? `${fc.erledigt}/${fc.gesamt}` : '' },
+        { href: '#packliste', icon: '🧳', titel: 'Packliste', wert: pack ? formatKg(packSummen(pack).aufgabe) : '' },
+        { href: '#fristen', icon: '⏰', titel: 'Fristen', wert: nf ? `${nf} offen` : '' },
+        { href: '#buchungen', icon: '🧾', titel: 'Buchungen' },
+        { href: '#tipps', icon: '📌', titel: 'Tipps' },
+      ]))}
+      ${abschnitt('App', liste([
+        { href: '#daten', icon: '💾', titel: 'Daten & Backup', unter: 'Import, Export, Darstellung' },
+      ]))}`,
+  };
 }
 
 const STORNO = {
   ok: { klasse: 'gruen', text: 'kostenlos stornierbar' },
   warn: { klasse: 'orange', text: 'offen' },
   crit: { klasse: 'rot', text: 'nicht erstattbar' },
-  mut: { klasse: 'grau', text: 'Sonderfall' },
+  mut: { klasse: 'leise', text: 'Sonderfall' },
 };
+const FARBE = { gruen: 'var(--gruen)', orange: 'var(--orange)', rot: 'var(--rot)', leise: 'var(--leise)' };
 
 const euro = (n) => n.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
 
-export function renderBuchungen(daten) {
-  const liste = Array.isArray(daten?.buchungen) ? daten.buchungen : [];
-  const summe = liste.reduce((s, b) => s + (typeof b?.eur === 'number' ? b.eur : 0), 0);
-  const offen = liste.filter((b) => typeof b?.eur !== 'number').length;
-  return `
-    ${unterseitenKopf('Buchungen')}
-    <section class="karte summe">
-      <span>Summe gebucht</span>
-      <b>${euro(summe)}</b>
-      ${offen ? `<small class="leise">+ ${offen} noch ohne Preis</small>` : ''}
-    </section>
-    <ul class="buchungen">
-      ${liste.map((b) => {
+export function seiteBuchungen(daten) {
+  const buchungen = Array.isArray(daten?.buchungen) ? daten.buchungen : [];
+  const summe = buchungen.reduce((s, b) => s + (typeof b?.eur === 'number' ? b.eur : 0), 0);
+  const offen = buchungen.filter((b) => typeof b?.eur !== 'number').length;
+  return {
+    titel: 'Buchungen',
+    zurueck: '#mehr',
+    html: `
+      ${held({ label: 'Summe gebucht', titel: euro(summe), unter: offen ? `+ ${offen} noch ohne Preis` : '' })}
+      ${liste(buchungen.map((b) => {
         const st = STORNO[b?.stornoStatus] ?? STORNO.mut;
-        return `
-        <li class="karte buchung buchung--${st.klasse}">
-          <div class="gruppenkopf"><b>${e(b?.leistung)}</b><b class="buchung__preis">${typeof b?.eur === 'number' ? euro(b.eur) : '–'}</b></div>
-          ${b?.ueber ? `<p class="leise klein">über ${e(b.ueber)}</p>` : ''}
-          <p class="buchung__storno"><span class="punkt" aria-hidden="true"></span>${e(b?.storno || st.text)}</p>
-        </li>`;
-      }).join('') || '<li class="karte leise">Keine Buchungen in den Reisedaten.</li>'}
-    </ul>`;
+        return {
+          punkt: FARBE[st.klasse],
+          titel: b?.leistung ?? '',
+          unterHtml: `<span class="text-${st.klasse}">${e(b?.storno || st.text)}</span>${b?.ueber ? ` · ${e(b.ueber)}` : ''}`,
+          wert: typeof b?.eur === 'number' ? euro(b.eur) : '–',
+        };
+      })) || leer('Keine Buchungen in den Reisedaten.')}`,
+  };
 }
 
-export function renderTipps(daten) {
+export function seiteTipps(daten, teile) {
   const gruppen = Array.isArray(daten?.tipps) ? daten.tipps : [];
-  return `
-    ${unterseitenKopf('Tipps')}
-    ${gruppen.map((g, i) => `
-      <details class="karte aufklapp" ${i === 0 ? 'open' : ''}>
-        <summary>${e(g?.gruppe)} <span class="leise klein">(${g?.tipps?.length ?? 0})</span></summary>
-        <dl class="tipps">
-          ${(g?.tipps ?? []).map((t) => `<div><dt>${e(t?.titel)}</dt><dd>${e(t?.text)}</dd></div>`).join('')}
-        </dl>
-      </details>`).join('') || '<section class="karte"><p class="leise">Keine Tipps in den Reisedaten.</p></section>'}`;
+  const nr = teile[0] != null ? Number(teile[0]) : null;
+  if (nr != null && gruppen[nr]) {
+    const g = gruppen[nr];
+    return {
+      titel: g.gruppe,
+      zurueck: '#tipps',
+      html: `
+        ${held({ titel: g.gruppe })}
+        <dl class="tipps">${(g.tipps ?? []).map((t) => `<div><dt>${e(t?.titel)}</dt><dd>${e(t?.text)}</dd></div>`).join('')}</dl>`,
+    };
+  }
+  return {
+    titel: 'Tipps',
+    zurueck: '#mehr',
+    html: liste(gruppen.map((g, i) => ({ href: `#tipps/${i}`, titel: g?.gruppe ?? '', wert: `${g?.tipps?.length ?? 0}` }))) || leer('Keine Tipps in den Reisedaten.'),
+  };
 }

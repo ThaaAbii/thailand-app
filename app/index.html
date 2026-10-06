@@ -8,7 +8,7 @@
   <meta name="format-detection" content="telephone=no">
   <title>Thailand 2026</title>
   <meta name="description" content="Persönliche Reise-App für Thailand – funktioniert offline.">
-  <meta name="theme-color" content="#0b6e78">
+  <meta name="theme-color" content="#ffffff">
   <meta name="robots" content="noindex">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon-192.png" type="image/png">
@@ -24,9 +24,12 @@
 </head>
 <body>
   <header class="kopf">
-    <span class="kopf__titel" id="kopf-titel">Thailand 2026</span>
+    <button class="kopf__zurueck" id="kopf-zurueck" type="button" aria-label="Zurück" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+    </button>
+    <span class="kopf__titel" id="kopf-titel">Thailand</span>
     <span class="kopf__rechts">
-      <span class="kopf__status" id="kopf-status" hidden></span>
+      <span class="kopf__status" id="kopf-status" hidden>Offline</span>
       <a class="kopf__sos" href="#notfall" aria-label="Notfall">SOS</a>
     </span>
   </header>
@@ -43,19 +46,19 @@
       <span>Heute</span>
     </a>
     <a href="#plan" data-nav="plan">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4M7.5 14h3M7.5 17h3M13.5 14h3"/></svg>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>
       <span>Plan</span>
     </a>
     <a href="#ausgaben" data-nav="ausgaben">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="6" width="19" height="13" rx="2.5"/><path d="M2.5 10h19M16 14.5h2.5"/><path d="M6 6l9-3.5 1.5 3.5"/></svg>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="6" width="19" height="13" rx="3"/><path d="M16 12.5h2.5M2.5 10h19"/></svg>
       <span>Ausgaben</span>
     </a>
-    <a href="#listen" data-nav="listen">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5l1.8 1.8L9 5M4 12.5l1.8 1.8L9 11M4 18.5l1.8 1.8L9 17M12 7h8M12 13h8M12 19h8"/></svg>
-      <span>Listen</span>
+    <a href="#tagebuch" data-nav="tagebuch">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5A1.5 1.5 0 0 1 6.5 3H19v16H6.5A1.5 1.5 0 0 0 5 20.5zM5 20.5A1.5 1.5 0 0 0 6.5 22H19v-3"/><path d="M9 8h6"/></svg>
+      <span>Tagebuch</span>
     </a>
     <a href="#mehr" data-nav="mehr">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18.5" cy="12" r="1.6"/></svg>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
       <span>Mehr</span>
     </a>
   </nav>

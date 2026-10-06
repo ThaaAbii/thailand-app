@@ -16,10 +16,13 @@ Sie werden in der App auf dem Handy importiert und bleiben dort (IndexedDB). Im 
   offline der zuletzt geholte Kurs; Tagesbudget mit Ampel; Auswertung pro Tag/Kategorie/Ort; CSV-Export),
   Offline-Routenkarte (SVG), Thai-Spickzettel mit Vollbild-Zeigen, Notfall-Seite (SOS-Knopf oben rechts)
 - ✅ App-Gefühl: kein Zoom, kein Pull-to-refresh, kein versehentliches Markieren, Installieren-Knopf, App-Kurzbefehle
-- ⏳ Phase 4: siehe `CLAUDE.md`
+- ✅ Phase 4: Reisetagebuch (Stimmung, Text, Fotos verkleinert in IndexedDB, Timeline; Backup inkl. Fotos),
+  Ausflugsideen pro Ort (Vorschläge + eigene, ○ → ⭐ will ich → ✅ gemacht)
+- ✅ Neues Design: ruhige Listen statt Kästen, Unterseiten mit Zurück-Pfeil (Hash-Routen wie `#tag/2026-11-21`,
+  `#ausgaben/neu`), Scroll-Position bleibt beim Zurückgehen erhalten, kein Scrollbalken
 
-Eigene Einträge (Häkchen, eigene Checklisten-Punkte, Packliste, Ausgaben, Einstellungen, zuletzt geholter Kurs) liegen in IndexedDB unter `eigene`
-und sind im Backup-Export unter `_app.eigene` enthalten.
+Eigene Einträge (Häkchen, eigene Checklisten-Punkte, Packliste, Ausgaben, Tagebuch, Ideen, Einstellungen, zuletzt geholter Kurs) liegen in IndexedDB unter `eigene`
+und sind im Backup-Export unter `_app.eigene` enthalten. Fotos liegen im IndexedDB-Store `fotos` und stehen im Backup als data-URLs unter `_app.fotos`.
 
 ## Aufbau
 

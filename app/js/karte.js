@@ -140,7 +140,7 @@ function linie(a, b, art, i) {
   return `<path class="route route--${ART[art]?.klasse ?? 'sonst'}" d="M${x1},${y1} L${x2},${y2}"/>`;
 }
 
-export function renderKarte(daten, jetzt, ui = {}) {
+export function seiteKarte(daten, jetzt, ui = {}) {
   const ph = reisePhase(daten, jetzt);
   const stopps = route(daten);
   const mitKoord = stopps.filter((s) => s.koord);
@@ -176,10 +176,8 @@ export function renderKarte(daten, jetzt, ui = {}) {
   const gewaehlt = ui.ort ? stopps.filter((s) => s.p === ui.ort) : [];
   const ohneKoord = stopps.filter((s) => !s.koord);
 
-  return `
-    <a class="zurueck" href="#mehr">‹ Zurück</a>
-    <h1 class="seitentitel">Routenkarte</h1>
-    <section class="karte karte--karte">
+  return { titel: 'Routenkarte', zurueck: '#mehr', html: `
+    <section class="karte--karte">
       <svg class="landkarte" viewBox="0 0 ${BREITE} ${HOEHE}" role="img" aria-label="Karte von Südthailand mit deiner Route">
         <rect class="meer" x="0" y="0" width="${BREITE}" height="${HOEHE}"/>
         <path class="land" d="${pfad(LAND)}"/>
@@ -198,8 +196,8 @@ export function renderKarte(daten, jetzt, ui = {}) {
 
     ${gewaehlt.length ? ortDetails(daten, ui.ort, gewaehlt) : ''}
 
-    <section class="karte">
-      <h2>Stationen</h2>
+    <section class="abschnitt">
+      <h2 class="label">Stationen</h2>
       <ol class="stationen">
         ${stopps.map((s, i) => {
           const ort = ortInfo(daten, s.p);
@@ -215,7 +213,7 @@ export function renderKarte(daten, jetzt, ui = {}) {
         }).join('')}
       </ol>
       ${ohneKoord.length ? `<p class="leise klein">Ohne Kartenposition: ${ohneKoord.map((s) => e(ortInfo(daten, s.p).name)).join(', ')}</p>` : ''}
-    </section>`;
+    </section>` };
 }
 
 function ortDetails(daten, key, abschnitte) {
@@ -223,8 +221,8 @@ function ortDetails(daten, key, abschnitte) {
   const tage = (daten.tage ?? []).filter((t) => abschnitte.some((a) => t.d >= a.von && t.d <= a.bis) && t.p === key);
   const unterkuenfte = [...new Set(tage.map((t) => t.stay).filter((s) => s && !/flieger/i.test(s)))];
   return `
-    <section class="karte karte--morgen" style="--ort:${ort.farbe}">
-      <h2>${e(ort.name)}</h2>
+    <section class="abschnitt ortdetail" style="--ort:${ort.farbe}">
+      <h2 class="label label--ort">${e(ort.name)}</h2>
       <p class="leise klein">${tage.length} ${tage.length === 1 ? 'Tag' : 'Tage'}: ${e(formatTag(tage[0]?.d ?? abschnitte[0].von))} – ${e(formatTag(tage[tage.length - 1]?.d ?? abschnitte[0].bis))}</p>
       ${unterkuenfte.map((u) => `
         <p>🛏️ ${e(u)}<br><a class="mehrlink" href="${mapsLink(`${u} ${ort.name}`)}" target="_blank" rel="noopener">In Google Maps öffnen ›</a></p>`).join('')}

@@ -67,11 +67,15 @@ export function zusammenfassung(obj) {
 export function trenneImport(obj) {
   const { _app, ...reise } = obj;
   const app = _app && typeof _app === 'object' && _app.format === BACKUP_FORMAT ? _app : null;
-  return { reise, eigene: app && app.eigene && typeof app.eigene === 'object' ? app.eigene : null };
+  return {
+    reise,
+    eigene: app && app.eigene && typeof app.eigene === 'object' ? app.eigene : null,
+    fotos: app && app.fotos && typeof app.fotos === 'object' ? app.fotos : null,
+  };
 }
 
-/** Backup = Reisedaten + eigene Einträge. Lässt sich genauso wieder importieren. */
-export function baueExport(reise, eigene, jetzt = new Date()) {
+/** Backup = Reisedaten + eigene Einträge (+ Fotos als data-URLs). Lässt sich genauso wieder importieren. */
+export function baueExport(reise, eigene, jetzt = new Date(), fotos = null) {
   return {
     ...reise,
     _app: {
@@ -79,6 +83,7 @@ export function baueExport(reise, eigene, jetzt = new Date()) {
       version: 1,
       exportiertAm: jetzt.toISOString(),
       eigene: eigene ?? {},
+      ...(fotos ? { fotos } : {}),
     },
   };
 }
