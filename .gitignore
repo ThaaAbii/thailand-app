@@ -1,0 +1,10 @@
+# Echte Reisedaten NIE ins (öffentliche) Repository!
+reise-daten.json
+**/reise-daten*.json
+# Backups, die die App exportiert
+thailand-backup-*.json
+**/thailand-backup-*.json
+
+node_modules/
+_site/
+.DS_Store

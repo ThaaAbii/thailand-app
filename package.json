@@ -1,0 +1,10 @@
+{
+  "name": "thailand-app",
+  "private": true,
+  "type": "module",
+  "description": "Persönliche Reise-App (PWA) für Thailand 2026",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "start": "python3 -m http.server 8080 --directory app"
+  }
+}
