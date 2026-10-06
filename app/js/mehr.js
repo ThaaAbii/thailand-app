@@ -16,6 +16,11 @@ export function seiteMehr(daten, eigene) {
         { href: '#ideen', icon: '💡', titel: 'Ausflugsideen' },
         { href: '#karte', icon: '🗺️', titel: 'Routenkarte' },
       ]))}
+      ${abschnitt('Reise', liste([
+        { href: '#fluege', icon: '✈️', titel: 'Flüge', unter: 'Flugnummer, Sitz, Online-Check-in, Bordkarte', wert: eigene?.fluege?.length ? `${eigene.fluege.length}` : '' },
+        { href: '#unterkuenfte', icon: '🛏️', titel: 'Unterkünfte', unter: 'Zimmer, Adresse, Telefon, Check-in/out' },
+        { href: '#plan', icon: '🗓️', titel: 'Fahrplan bearbeiten', unter: 'Tag antippen → „Tag bearbeiten“' },
+      ]))}
       ${abschnitt('Vorbereitung', liste([
         { href: '#checkliste', icon: '✅', titel: 'Checkliste', wert: fc.gesamt ? `${fc.erledigt}/${fc.gesamt}` : '' },
         { href: '#packliste', icon: '🧳', titel: 'Packliste', wert: pack ? formatKg(packSummen(pack).aufgabe) : '' },

@@ -239,9 +239,13 @@ export const tagebuchAktionen = {
       const was = ev.target.closest('[data-fa]')?.dataset.fa;
       if (was === 'weg') {
         if (!confirm('Dieses Foto löschen?')) return;
-        const d = f.d;
-        const x = eintrag(ctx, d);
-        x.fotos = x.fotos.filter((y) => y !== id);
+        if (el.dataset.flug) {
+          const flug = (ctx.state.eigene.fluege ?? []).find((y) => y.id === el.dataset.flug);
+          if (flug) flug.fotos = (flug.fotos ?? []).filter((y) => y !== id);
+        } else {
+          const x = eintrag(ctx, f.d);
+          x.fotos = x.fotos.filter((y) => y !== id);
+        }
         await db.fotoLoeschen(id).catch(() => {});
         urlCache.delete(id);
         await ctx.speichereEigene();

@@ -563,3 +563,10 @@ details summary { cursor: pointer; color: var(--leise); margin-top: 6px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ---------- Bearbeiten: Tag, Unterkunft, Flug ---------- */
+.textfeld--klein { min-height: 92px; }
+.abstand-klein { margin-top: 8px; padding: 0 4px; }
+.unterkunft-name { font-size: 1.15rem; font-weight: 700; padding: 0 4px; margin-bottom: 12px; }
+.formular > .segment { margin-top: 0; }
+.formular > .fotoraster { margin-top: 4px; }

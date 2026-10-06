@@ -2,9 +2,10 @@
 import { reisePhase, tagLabel, formatTag, plusTage } from './zeit.js';
 import { e, ortInfo, zeilen } from './ui.js';
 import { liste, abschnitt, held, zeile, leer } from './bausteine.js';
-import { mapsLink } from './karte.js';
 import { gueltigeAusgaben, inThb, formatThb } from './ausgabenlogik.js';
 import { eintragVon } from './tagebuch.js';
+import { fluegeAm, unterkunftDetails } from './anpassungen.js';
+import { flugZeile, unterkunftZeilen } from './details.js';
 
 export function seitePlan(daten, eigene, jetzt) {
   const ph = reisePhase(daten, jetzt);
@@ -66,6 +67,9 @@ export function seiteTag(daten, eigene, jetzt, d) {
   const tb = eintragVon(eigene, d);
   const vor = ph.tage[i - 1];
   const nach = ph.tage[i + 1];
+  const fluege = fluegeAm(eigene, d);
+  const det = stay ? unterkunftDetails(eigene, stay) : {};
+  const geaendert = !!eigene?.tagAenderungen?.[d];
 
   return {
     titel: formatTag(d),
@@ -77,13 +81,19 @@ export function seiteTag(daten, eigene, jetzt, d) {
         unterHtml: t.p && t.p !== 'travel' ? `<span class="punkt" style="--ort:${ort.farbe}"></span>${e(ort.name)}` : '',
         farbe: ort.farbe,
       })}
+      ${geaendert ? '<p class="leise klein abstand-klein">✏️ von dir bearbeitet</p>' : ''}
       ${zeile('', 'Programm', t.prog)}
       ${zeilen(t.tr).length ? abschnitt('Transport', `<ul class="schritte">${zeilen(t.tr).map((x) => `<li>${e(x)}</li>`).join('')}</ul>`) : ''}
-      ${zeile('', 'Unterkunft', t.stay)}
+      ${fluege.length ? abschnitt('Flug', liste(fluege.map((f) => flugZeile(f, jetzt)))) : ''}
       ${zeile('', 'Check-in / Check-out', t.ci, true)}
+      ${stay ? abschnitt('Unterkunft', `<p class="unterkunft-name">${e(stay)}</p>${liste([
+        ...unterkunftZeilen(stay, det, ort.name),
+        { href: `#unterkunft/${encodeURIComponent(stay)}/bearbeiten`, icon: '✏️', titel: Object.values(det).some(Boolean) ? 'Hotel-Details bearbeiten' : 'Zimmer, Adresse, Telefon … ergänzen' },
+      ])}`) : zeile('', 'Unterkunft', t.stay)}
       ${t.note ? `<p class="notiz">📝 ${zeilen(t.note).map(e).join('<br>')}</p>` : ''}
       ${abschnitt('', liste([
-        stay ? { href: mapsLink(`${stay} ${ort.name}`), extern: true, icon: '📍', titel: 'Unterkunft in Google Maps' } : null,
+        { href: `#tag/${d}/bearbeiten`, icon: '✏️', titel: 'Tag bearbeiten', unter: 'Transport, Notiz, Programm … ändern oder ergänzen' },
+        { href: `#flug/neu/${d}`, icon: '✈️', titel: 'Flug hinzufügen' },
         { href: '#ausgaben/liste', icon: '💸', titel: 'Ausgaben', wert: thb ? formatThb(thb) : '–' },
         { href: `#tagebuch/${d}`, icon: tb?.stimmung || '📔', titel: tb?.text || tb?.fotos?.length ? 'Tagebuch-Eintrag' : 'Tagebuch schreiben' },
       ]))}
