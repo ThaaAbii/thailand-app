@@ -8,8 +8,8 @@
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#f5f2ea",
-  "theme_color": "#0b6e78",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
   "icons": [
     {
       "src": "icons/icon-192.png",
@@ -41,6 +41,17 @@
       "name": "Ausgabe eintragen",
       "short_name": "Ausgabe",
       "url": "./#ausgaben",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Tagebuch schreiben",
+      "short_name": "Tagebuch",
+      "url": "./#tagebuch",
       "icons": [
         {
           "src": "icons/icon-192.png",

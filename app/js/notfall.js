@@ -40,7 +40,7 @@ function name(key) {
   return key.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase());
 }
 
-export function renderNotfall(daten, jetzt) {
+export function seiteNotfall(daten, jetzt) {
   const n = daten?.notfall && typeof daten.notfall === 'object' ? daten.notfall : {};
   const eintraege = Object.entries(n).filter(([, v]) => typeof v === 'string' && /\d/.test(v));
   const v = daten?.versicherung ?? {};
@@ -51,13 +51,11 @@ export function renderNotfall(daten, jetzt) {
   const stay = tag?.stay && !/flieger/i.test(tag.stay) ? tag.stay : null;
   const ort = tag ? ortInfo(daten, tag.p) : null;
 
-  return `
-    <a class="zurueck" href="#mehr">‹ Zurück</a>
-    <h1 class="seitentitel">Notfall</h1>
-    <p class="leise klein seitenhinweis">Tippe auf eine Nummer, um direkt anzurufen.</p>
+  return { titel: 'Notfall', zurueck: '#mehr', html: `
+    <p class="leise klein">Tippe auf eine Nummer, um direkt anzurufen.</p>
 
-    <section class="karte">
-      <h2>Notrufe in Thailand</h2>
+    <section class="abschnitt">
+      <h2 class="label">Notrufe in Thailand</h2>
       <div class="notrufe">
         ${eintraege.map(([k, val], i) => {
           const b = BEKANNT[k] ?? { name: name(k), info: '', icon: '📞' };
@@ -67,16 +65,16 @@ export function renderNotfall(daten, jetzt) {
     </section>
 
     ${versNummern.length || v.stand ? `
-    <section class="karte">
-      <h2>Reiseversicherung</h2>
+    <section class="abschnitt">
+      <h2 class="label">Reiseversicherung</h2>
       <div class="notrufe">
         ${versNummern.map(([k, val]) => nummer('🩺', /mdt/i.test(k) ? 'Versicherungs-Notruf (MDT)' : 'Versicherungs-Notruf', 'Bei Krankenhaus-Aufenthalt sofort anrufen', val)).join('')}
       </div>
       ${v.stand ? `<p class="leise klein">${e(v.stand)}</p>` : ''}
     </section>` : ''}
 
-    <section class="karte">
-      <h2>${BOTSCHAFT.name}</h2>
+    <section class="abschnitt">
+      <h2 class="label">${BOTSCHAFT.name}</h2>
       <div class="notrufe">
         ${nummer('🇩🇪', 'Botschaft (Öffnungszeiten)', 'Pass verloren, Festnahme, schwere Notlage', BOTSCHAFT.telefon)}
         ${nummer('🌙', 'Notfall außerhalb der Öffnungszeiten', 'Bereitschaftsdienst, keine Visafragen', BOTSCHAFT.notfall)}
@@ -86,20 +84,20 @@ export function renderNotfall(daten, jetzt) {
     </section>
 
     ${stay ? `
-    <section class="karte karte--morgen" style="--ort:${ort.farbe}">
-      <h2>Meine Unterkunft heute</h2>
+    <section class="abschnitt" style="--ort:${ort.farbe}">
+      <h2 class="label">Meine Unterkunft heute</h2>
       <p class="unterkunft-gross">${e(stay)}</p>
       <p class="leise">${e(ort.name)}</p>
       <a class="mehrlink" href="${mapsLink(`${stay} ${ort.name}`)}" target="_blank" rel="noopener">In Google Maps öffnen ›</a>
     </section>` : ''}
 
-    <section class="karte">
-      <h2>Wenn etwas passiert</h2>
+    <section class="abschnitt">
+      <h2 class="label">Wenn etwas passiert</h2>
       <ul class="infoliste">
         <li><b>Unfall/Krankheit:</b> 1669 rufen, dann sofort die Versicherung informieren.</li>
         <li><b>Pass weg:</b> Anzeige bei der Touristenpolizei (1155), dann Botschaft.</li>
         <li><b>Karte weg:</b> sofort sperren (116 116) – Bargeld-Reserve getrennt aufbewahren.</li>
         <li><b>Im Thai-Spickzettel</b> unter „Gesundheit & Notfall“ stehen Sätze zum Zeigen.</li>
       </ul>
-    </section>`;
+    </section>` };
 }

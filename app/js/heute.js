@@ -1,22 +1,23 @@
-// Die Startseite „Heute“.
+// Startseite „Heute“: nur das Wichtigste, Details per Antippen.
 import {
   TZ_DE, TZ_TH, uhrzeitIn, versatzStunden, plusTage, tageDiff, datumIn, formatTag,
   formatLang, countdown, naechsteFristen, reisePhase,
 } from './zeit.js';
 import { e, zeilen, ortInfo } from './ui.js';
-import { zeile, fristHtml, ortChip, balken } from './bausteine.js';
+import { liste, abschnitt, fristZeile, held } from './bausteine.js';
 import { checklistenGruppen, fortschritt, packSummen, packWarnungen, formatKg } from './listenlogik.js';
-import { heuteKarte } from './ausgaben.js';
+import { tagesbudgetEur, gueltigeAusgaben, inEur, inThb, budgetStatus, STATUS_TEXT, formatThb } from './ausgabenlogik.js';
 import { mapsLink } from './karte.js';
+import { ideenFuerOrt } from './ideen.js';
 
 export function renderHeute(daten, jetzt, eigene = {}) {
   const ph = reisePhase(daten, jetzt);
   if (ph.phase === 'vorher') return vorher(daten, ph, jetzt, eigene);
-  if (ph.phase === 'nachher') return nachher(daten, ph);
+  if (ph.phase === 'nachher') return nachher(daten, ph, eigene);
   return unterwegs(daten, ph, jetzt, eigene);
 }
 
-/** Aktualisiert Countdown-Zahlen und Uhren jede Sekunde, ohne die Seite neu aufzubauen. */
+/** Countdown und Uhren jede Sekunde aktualisieren, ohne die Seite neu aufzubauen. */
 export function aktualisiereTicker(root, jetzt) {
   for (const el of root.querySelectorAll('[data-cd]')) {
     const c = countdown(new Date(el.dataset.cd), jetzt);
@@ -24,174 +25,129 @@ export function aktualisiereTicker(root, jetzt) {
       const t = el.querySelector(`[data-cd-teil="${teil}"]`);
       if (t) t.textContent = wert;
     };
+    const zwei = (n) => String(n).padStart(2, '0');
     setze('tage', c.tage);
     setze('tage-label', c.tage === 1 ? 'Tag' : 'Tage');
-    setze('stunden', String(c.stunden).padStart(2, '0'));
-    setze('minuten', String(c.minuten).padStart(2, '0'));
-    setze('sekunden', String(c.sekunden).padStart(2, '0'));
+    setze('uhr', `${zwei(c.stunden)}:${zwei(c.minuten)}:${zwei(c.sekunden)}`);
   }
   for (const el of root.querySelectorAll('[data-uhr]')) el.textContent = uhrzeitIn(jetzt, el.dataset.uhr);
-}
-
-// ---------- Phasen ----------
-
-function vorher(daten, ph, jetzt, eigene) {
-  const fristen = naechsteFristen(daten.fristen, jetzt);
-  const naechste = fristen[0];
-  return `
-    ${ph.abflug ? `
-    <section class="karte karte--held">
-      <p class="ueberzeile">Countdown bis zum Abflug</p>
-      ${countdownHtml(ph.abflug)}
-      <p class="unterzeile">${e(formatLang(ph.abflug, TZ_DE))} Uhr <span class="leise">(deutsche Zeit)</span></p>
-    </section>` : ''}
-    ${uhren(jetzt)}
-    ${naechste ? `
-    <section class="karte">
-      <h2>Nächste Frist</h2>
-      <ul class="fristen fristen--gross">${fristHtml(naechste, jetzt, TZ_DE)}</ul>
-    </section>` : `
-    <section class="karte"><h2>Fristen</h2><p class="leise">Keine offenen Fristen. 🎉</p></section>`}
-    ${fristen.length > 1 ? `
-    <section class="karte">
-      <h2>Danach</h2>
-      <ul class="fristen">${fristen.slice(1, 5).map((f) => fristHtml(f, jetzt, TZ_DE)).join('')}</ul>
-      <a class="mehrlink" href="#fristen">Alle Fristen ansehen ›</a>
-    </section>` : ''}
-    ${vorbereitung(daten, eigene)}
-    ${morgenKarte(daten, ph, plusTage(ph.datum, 1))}
-  `;
-}
-
-function unterwegs(daten, ph, jetzt, eigene) {
-  const t = ph.tag;
-  const ort = ortInfo(daten, t?.p);
-  const tz = ph.tz;
-  const heuteDe = datumIn(jetzt, TZ_DE);
-  const bald = naechsteFristen(daten.fristen, jetzt)
-    .filter((f) => tageDiff(heuteDe, datumIn(f.zeit, TZ_DE)) <= 7);
-
-  const kopf = `
-    <section class="karte karte--held karte--ort" style="--ort:${ort.farbe}">
-      <p class="ueberzeile">${e(ph.label)}</p>
-      <h1 class="tagtitel">${e(t?.t || 'Kein Eintrag für heute')}</h1>
-      <p class="unterzeile">${e(formatTag(ph.datum, true))}
-        ${t?.p ? `${ortChip(ort)}` : ''}</p>
-    </section>`;
-
-  const abflugBald = ph.abflug && ph.abflug > jetzt ? `
-    <section class="karte karte--held karte--klein">
-      <p class="ueberzeile">Bis zum Abflug</p>
-      ${countdownHtml(ph.abflug)}
-    </section>` : '';
-
-  const details = t ? `
-    <section class="karte">
-      ${zeile('🗓️', 'Programm', t.prog)}
-      ${zeile('🚐', 'Transport heute', t.tr, true)}
-      ${zeile('🛏️', 'Unterkunft', t.stay)}
-      ${t.stay && !/flieger/i.test(t.stay) ? `<a class="mehrlink maps" href="${mapsLink(`${t.stay} ${ort.name}`)}" target="_blank" rel="noopener">📍 Unterkunft in Google Maps</a>` : ''}
-      ${zeile('🔑', 'Check-in / Check-out', t.ci, true)}
-      ${t.note ? `<div class="notiz"><span aria-hidden="true">📝</span><div>${zeilen(t.note).map(e).join('<br>')}</div></div>` : ''}
-      ${!t.prog && !t.tr && !t.stay && !t.ci && !t.note ? '<p class="leise">Für heute ist nichts eingetragen – genieß den Tag!</p>' : ''}
-    </section>` : `
-    <section class="karte"><p class="leise">Für ${e(formatTag(ph.datum))} gibt es keinen Eintrag im Fahrplan.</p></section>`;
-
-  const imLand = ph.label !== 'Abreisetag' && ph.label !== 'Heimreisetag';
-  return `
-    ${kopf}
-    ${abflugBald}
-    ${details}
-    ${imLand ? heuteKarte(daten, eigene, ph.datum, { mitLink: true }) : ''}
-    ${uhren(jetzt)}
-    ${bald.length ? `
-    <section class="karte">
-      <h2>Fristen in den nächsten 7 Tagen</h2>
-      <ul class="fristen">${bald.map((f) => fristHtml(f, jetzt, tz)).join('')}</ul>
-    </section>` : ''}
-    ${morgenKarte(daten, ph, plusTage(ph.datum, 1))}
-  `;
-}
-
-function nachher(daten, ph) {
-  const erster = ph.tage[0]?.d;
-  const letzter = ph.tage[ph.tage.length - 1]?.d;
-  return `
-    <section class="karte karte--held">
-      <p class="ueberzeile">Reise beendet</p>
-      <h1 class="tagtitel">Willkommen zurück! 🏠</h1>
-      ${erster && letzter ? `<p class="unterzeile">${e(formatTag(erster, true))} bis ${e(formatTag(letzter, true))}</p>` : ''}
-    </section>
-    <section class="karte">
-      <p>Denk daran, unter <a href="#daten">Daten</a> ein Backup zu speichern, damit deine Einträge nicht verloren gehen.</p>
-    </section>
-  `;
-}
-
-// ---------- Bausteine ----------
-
-function vorbereitung(daten, eigene) {
-  const punkte = checklistenGruppen(daten, eigene).flatMap((g) => g.punkte);
-  const fc = fortschritt(punkte);
-  const pack = Array.isArray(eigene?.packliste) ? eigene.packliste : [];
-  const s = packSummen(pack);
-  const warnung = packWarnungen(s)[0];
-  if (!fc.gesamt && !pack.length) return '';
-  return `
-    <section class="karte">
-      <h2>Vorbereitung</h2>
-      ${fc.gesamt ? `
-      <a class="fortschritt-link" href="#checkliste">
-        <span>✅ Checkliste</span><b>${fc.erledigt} / ${fc.gesamt}</b>
-      </a>
-      ${balken(fc.prozent)}` : ''}
-      ${pack.length ? `
-      <a class="fortschritt-link" href="#packliste">
-        <span>🧳 Aufgabegepäck</span><b>${formatKg(s.aufgabe)}</b>
-      </a>
-      ${balken((s.aufgabe / 23000) * 100, warnung?.stufe === 'ok' ? '' : warnung?.stufe)}
-      ${warnung && warnung.stufe !== 'ok' ? `<p class="warnung warnung--${warnung.stufe} klein">${e(warnung.text)}</p>` : ''}` : `
-      <a class="fortschritt-link" href="#packliste"><span>🧳 Packliste anlegen</span><b>›</b></a>`}
-    </section>`;
-}
-
-function countdownHtml(ziel) {
-  return `
-    <div class="countdown" data-cd="${e(ziel.toISOString())}">
-      <div class="countdown__tage"><span data-cd-teil="tage">–</span> <small data-cd-teil="tage-label">Tage</small></div>
-      <div class="countdown__rest">
-        <span><b data-cd-teil="stunden">––</b> Std</span>
-        <span><b data-cd-teil="minuten">––</b> Min</span>
-        <span><b data-cd-teil="sekunden">––</b> Sek</span>
-      </div>
-    </div>`;
 }
 
 function uhren(jetzt) {
   const diff = versatzStunden(jetzt, TZ_TH) - versatzStunden(jetzt, TZ_DE);
   return `
-    <section class="uhren" aria-label="Uhrzeiten">
-      <div class="uhren__uhr"><span>🇩🇪 Deutschland</span><b data-uhr="${TZ_DE}">${uhrzeitIn(jetzt, TZ_DE)}</b></div>
-      <div class="uhren__uhr"><span>🇹🇭 Thailand</span><b data-uhr="${TZ_TH}">${uhrzeitIn(jetzt, TZ_TH)}</b></div>
-      <p class="uhren__diff">Thailand ist ${diff} Std. voraus</p>
-    </section>`;
+    <p class="uhrzeile">
+      <span>🇩🇪 <b data-uhr="${TZ_DE}">${uhrzeitIn(jetzt, TZ_DE)}</b></span>
+      <span>🇹🇭 <b data-uhr="${TZ_TH}">${uhrzeitIn(jetzt, TZ_TH)}</b></span>
+      <span class="leise">+${diff} Std.</span>
+    </p>`;
 }
 
+// ---------- Vor der Reise ----------
 
+function vorher(daten, ph, jetzt, eigene) {
+  const fristen = naechsteFristen(daten.fristen, jetzt);
+  const punkte = checklistenGruppen(daten, eigene).flatMap((g) => g.punkte);
+  const fc = fortschritt(punkte);
+  const pack = Array.isArray(eigene?.packliste) ? eigene.packliste : null;
+  const s = packSummen(pack ?? []);
+  const warn = packWarnungen(s)[0];
 
-function morgenKarte(daten, ph, datum) {
-  const t = ph.tage.find((x) => x.d === datum);
-  if (!t) return '';
-  const ort = ortInfo(daten, t.p);
-  const heute = ph.tage.find((x) => x.d === ph.datum);
-  const neueUnterkunft = t.stay && t.stay !== heute?.stay;
+  const kopf = ph.abflug ? `
+    <section class="held" data-cd="${e(ph.abflug.toISOString())}">
+      <p class="held__label">Noch</p>
+      <h1 class="held__zahl"><span data-cd-teil="tage">–</span> <small data-cd-teil="tage-label">Tage</small></h1>
+      <p class="held__unter"><span data-cd-teil="uhr" class="tabellenzahl">––:––:––</span> bis zum Abflug<br>
+        <span class="leise">${e(formatLang(ph.abflug, TZ_DE))} Uhr</span></p>
+    </section>` : held({ titel: daten?.reise?.titel || 'Reise' });
+
   return `
-    <section class="karte karte--morgen" style="--ort:${ort.farbe}">
-      <h2>Morgen · ${e(formatTag(datum))}</h2>
-      <p class="morgen__titel">${t.p ? `${ortChip(ort)} ` : ''}${e(t.t)}</p>
-      ${zeile('🚐', 'Transport', t.tr, true)}
-      ${neueUnterkunft ? zeile('🛏️', 'Unterkunft', t.stay) : ''}
-      ${zeile('🔑', 'Check-in / Check-out', t.ci, true)}
-      ${zeile('📝', 'Notiz', t.note)}
-    </section>`;
+    ${kopf}
+    ${abschnitt('Als Nächstes', liste([
+      fristen[0] ? fristZeile(fristen[0], jetzt, TZ_DE, '#fristen', true) : { titel: 'Keine offenen Fristen', icon: '🎉' },
+    ]), fristen.length > 1 ? ` <a class="label__link" href="#fristen">Alle ${fristen.length}</a>` : '')}
+    ${abschnitt('Vorbereitung', liste([
+      fc.gesamt ? { href: '#checkliste', icon: '✅', titel: 'Checkliste', wert: `${fc.erledigt}/${fc.gesamt}` } : null,
+      {
+        href: '#packliste', icon: '🧳', titel: 'Packliste',
+        unter: pack ? (warn && warn.stufe !== 'ok' ? warn.text.split(' – ')[0] : 'Aufgabegepäck') : 'Noch nicht angelegt',
+        wert: pack ? formatKg(s.aufgabe) : '',
+        wertKlasse: warn && warn.stufe !== 'ok' ? `text-${warn.stufe}` : '',
+      },
+      { href: '#plan', icon: '🗓️', titel: 'Fahrplan', wert: `${ph.tage.length} Tage` },
+    ]))}
+    ${uhren(jetzt)}`;
+}
+
+// ---------- Während der Reise ----------
+
+function unterwegs(daten, ph, jetzt, eigene) {
+  const t = ph.tag;
+  const ort = ortInfo(daten, t?.p);
+  const imLand = ph.label !== 'Abreisetag' && ph.label !== 'Heimreisetag';
+
+  const kopf = held({
+    label: `${ph.label} · ${formatTag(ph.datum)}`,
+    titel: t?.t || 'Kein Eintrag für heute',
+    unterHtml: t?.p && t.p !== 'travel' && t.t !== ort.name ? `<span class="punkt" style="--ort:${ort.farbe}"></span>${e(ort.name)}` : '',
+    farbe: ort.farbe,
+  });
+
+  const countdownAbflug = ph.abflug && ph.abflug > jetzt ? `
+    <p class="hinweiszeile" data-cd="${e(ph.abflug.toISOString())}">✈️ Abflug in <b data-cd-teil="uhr" class="tabellenzahl">––:––:––</b></p>` : '';
+
+  const transport = zeilen(t?.tr);
+  const stay = t?.stay && !/flieger/i.test(t.stay) ? t.stay : null;
+
+  const ausgaben = gueltigeAusgaben(eigene).filter((a) => a.d === ph.datum);
+  const eur = ausgaben.reduce((s, a) => s + inEur(a), 0);
+  const thb = ausgaben.reduce((s, a) => s + inThb(a), 0);
+  const status = budgetStatus(eur, tagesbudgetEur(daten, eigene));
+
+  const tagebuch = eigene?.tagebuch?.[ph.datum];
+  const hatTagebuch = !!(tagebuch?.text || tagebuch?.fotos?.length || tagebuch?.stimmung);
+  const ideen = t?.p && t.p !== 'travel' ? ideenFuerOrt(daten, eigene, t.p) : [];
+  const offeneWuensche = ideen.filter((i) => i.status === 'will').length;
+
+  const heuteDe = datumIn(jetzt, TZ_DE);
+  const bald = naechsteFristen(daten.fristen, jetzt).filter((f) => tageDiff(heuteDe, datumIn(f.zeit, TZ_DE)) <= 3);
+
+  const morgenDatum = plusTage(ph.datum, 1);
+  const morgen = ph.tage.find((x) => x.d === morgenDatum);
+  const morgenOrt = morgen ? ortInfo(daten, morgen.p) : null;
+
+  return `
+    ${kopf}
+    ${countdownAbflug}
+    ${transport.length ? abschnitt('Unterwegs heute', `<ul class="schritte">${transport.map((x) => `<li>${e(x)}</li>`).join('')}</ul>`) : ''}
+    ${abschnitt('Heute', liste([
+      stay ? { href: mapsLink(`${stay} ${ort.name}`), extern: true, icon: '🛏️', titel: stay, unter: zeilen(t.ci).join(' · ') || 'In Google Maps öffnen' } : null,
+      !stay && t?.ci ? { icon: '🔑', titel: zeilen(t.ci).join(' · ') } : null,
+      t?.prog && !transport.length ? { icon: '🗓️', titel: t.prog } : null,
+      imLand ? { href: '#ausgaben', icon: '💸', titel: 'Ausgaben', unter: thb ? `${STATUS_TEXT[status].icon} ${STATUS_TEXT[status].text}` : 'Noch nichts eingetragen', wert: thb ? formatThb(thb) : '＋' } : null,
+      { href: `#tagebuch/${ph.datum}`, icon: tagebuch?.stimmung || '📔', titel: hatTagebuch ? 'Tagebuch' : 'Tagebuch schreiben', unter: tagebuch?.text ? tagebuch.text.slice(0, 60) : '' },
+      ideen.length ? { href: `#ideen/${t.p}`, icon: '💡', titel: `Ideen für ${ort.name}`, wert: offeneWuensche ? `${offeneWuensche} ⭐` : `${ideen.length}` } : null,
+    ]))}
+    ${t?.note ? `<p class="notiz">📝 ${zeilen(t.note).map(e).join('<br>')}</p>` : ''}
+    ${bald.length ? abschnitt('Bald fällig', liste(bald.map((f) => fristZeile(f, jetzt, ph.tz, '#fristen', true)))) : ''}
+    ${morgen ? abschnitt('Morgen', liste([{
+      href: `#tag/${morgenDatum}`,
+      punkt: morgenOrt.farbe,
+      titel: morgen.t || morgenOrt.name,
+      unter: zeilen(morgen.tr)[0] || (morgen.stay && morgen.stay !== t?.stay ? `🛏️ ${morgen.stay}` : formatTag(morgenDatum, true)),
+    }])) : ''}
+    ${uhren(jetzt)}`;
+}
+
+// ---------- Nach der Reise ----------
+
+function nachher(daten, ph, eigene) {
+  const eintraege = Object.keys(eigene?.tagebuch ?? {}).length;
+  return `
+    ${held({ label: 'Reise beendet', titel: 'Willkommen zurück! 🏠', unter: `${formatTag(ph.tage[0]?.d ?? ph.datum, true)} bis ${formatTag(ph.tage[ph.tage.length - 1]?.d ?? ph.datum, true)}` })}
+    ${abschnitt('Erinnerungen', liste([
+      { href: '#tagebuch', icon: '📔', titel: 'Reisetagebuch', wert: eintraege ? `${eintraege} Tage` : '' },
+      { href: '#ausgaben/statistik', icon: '💸', titel: 'Ausgaben-Übersicht' },
+      { href: '#daten', icon: '💾', titel: 'Backup mit Fotos speichern' },
+    ]))}`;
 }

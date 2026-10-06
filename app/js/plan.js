@@ -1,53 +1,97 @@
-// Fahrplan: alle Reisetage untereinander, heute hervorgehoben.
-import { reisePhase, tagLabel, formatTag } from './zeit.js';
-import { e, ortInfo } from './ui.js';
-import { zeile, ortChip } from './bausteine.js';
+// Fahrplan: ruhige Liste aller Tage, Details auf einer eigenen Seite pro Tag.
+import { reisePhase, tagLabel, formatTag, plusTage } from './zeit.js';
+import { e, ortInfo, zeilen } from './ui.js';
+import { liste, abschnitt, held, zeile, leer } from './bausteine.js';
 import { mapsLink } from './karte.js';
 import { gueltigeAusgaben, inThb, formatThb } from './ausgabenlogik.js';
+import { eintragVon } from './tagebuch.js';
 
-export function renderPlan(daten, jetzt, eigene = {}) {
-  const ausgegeben = new Map();
-  for (const a of gueltigeAusgaben(eigene)) ausgegeben.set(a.d, (ausgegeben.get(a.d) ?? 0) + inThb(a));
+export function seitePlan(daten, eigene, jetzt) {
   const ph = reisePhase(daten, jetzt);
-  if (!ph.tage.length) return '<h1 class="seitentitel">Fahrplan</h1><section class="karte"><p class="leise">Kein Fahrplan vorhanden.</p></section>';
+  if (!ph.tage.length) return { titel: 'Fahrplan', html: leer('Kein Fahrplan vorhanden.') };
 
-  let letzterOrt = null;
-  const tage = ph.tage.map((t) => {
-    const ort = ortInfo(daten, t.p);
-    const heute = t.d === ph.datum;
-    const vorbei = t.d < ph.datum;
-    const neuerAbschnitt = t.p !== letzterOrt && t.p !== 'travel';
-    if (t.p !== 'travel') letzterOrt = t.p;
-    const [wt, datum] = formatTag(t.d).split(', ');
-    const hinweise = [t.tr && '🚐', t.ci && '🔑', t.note && '📝'].filter(Boolean).join(' ');
+  // Tage in Abschnitte nach Ort gliedern (Reisetage gehören zum nächsten Ort)
+  const abschnitte = [];
+  let aktuell = null;
+  for (const t of ph.tage) {
+    const p = t.p && t.p !== 'travel' ? t.p : null;
+    if (!aktuell || (p && aktuell.p && p !== aktuell.p) || (p && !aktuell.p)) {
+      if (aktuell && !aktuell.p && p) {
+        aktuell.p = p;
+      } else {
+        aktuell = { p, tage: [] };
+        abschnitte.push(aktuell);
+      }
+    }
+    aktuell.tage.push(t);
+  }
+
+  const html = abschnitte.map((a) => {
+    const ort = ortInfo(daten, a.p ?? 'travel');
+    const titel = a.p ? ort.name : 'Reise';
     return `
-      ${neuerAbschnitt ? `<h2 class="abschnitt" style="--ort:${ort.farbe}">${e(ort.name)}</h2>` : ''}
-      <details class="plantag${heute ? ' plantag--heute' : ''}${vorbei ? ' plantag--vorbei' : ''}" style="--ort:${ort.farbe}" ${heute ? 'open data-heute' : ''}>
-        <summary>
-          <span class="plantag__datum"><small>${e(wt)}</small><b>${e(datum.replace(/\.$/, ''))}</b></span>
-          <span class="plantag__text">
-            <span class="plantag__label">${heute ? '<b>Heute</b> · ' : ''}${e(tagLabel(ph, t.d).label)}</span>
-            <strong>${e(t.t || ort.name)}</strong>
-            ${t.stay ? `<span class="plantag__stay">🛏️ ${e(t.stay)}</span>` : ''}
-            ${ausgegeben.has(t.d) ? `<span class="plantag__stay">💸 ${formatThb(ausgegeben.get(t.d))} ausgegeben</span>` : ''}
-          </span>
-          <span class="plantag__icons" aria-hidden="true">${hinweise}</span>
-        </summary>
-        <div class="plantag__inhalt">
-          ${t.p ? `<p>${ortChip(ort)}</p>` : ''}
-          ${zeile('🗓️', 'Programm', t.prog)}
-          ${zeile('🚐', 'Transport', t.tr, true)}
-          ${zeile('🛏️', 'Unterkunft', t.stay)}
-          ${t.stay && !/flieger/i.test(t.stay) ? `<a class="mehrlink" href="${mapsLink(`${t.stay} ${ort.name}`)}" target="_blank" rel="noopener">📍 In Google Maps öffnen</a>` : ''}
-          ${zeile('🔑', 'Check-in / Check-out', t.ci, true)}
-          ${zeile('📝', 'Notiz', t.note)}
-          ${!t.prog && !t.tr && !t.stay && !t.ci && !t.note ? '<p class="leise">Nichts eingetragen – freier Tag.</p>' : ''}
+      <section class="abschnitt">
+        <h2 class="label label--ort" style="--ort:${ort.farbe}">${e(titel)}</h2>
+        <div class="liste">
+          ${a.tage.map((t) => {
+            const heute = t.d === ph.datum;
+            const [wt, dm] = formatTag(t.d).split(', ');
+            const tOrt = ortInfo(daten, t.p);
+            return `
+              <a class="lz tagzeile${heute ? ' tagzeile--heute' : ''}${t.d < ph.datum ? ' tagzeile--vorbei' : ''}" href="#tag/${t.d}" ${heute ? 'data-heute' : ''} style="--ort:${tOrt.farbe}">
+                <span class="tagzeile__datum"><small>${e(wt)}</small><b>${e(dm.replace(/\.$/, '').split('.')[0])}</b></span>
+                <span class="lz__text">
+                  <span class="lz__titel">${heute ? '<span class="pille">Heute</span> ' : ''}${e(t.t || tOrt.name)}</span>
+                  <span class="lz__unter">${e(tagLabel(ph, t.d).label)}${t.tr ? ' · 🚐' : ''}</span>
+                </span>
+                <span class="lz__pfeil" aria-hidden="true">›</span>
+              </a>`;
+          }).join('')}
         </div>
-      </details>`;
+      </section>`;
   }).join('');
 
-  return `
-    <h1 class="seitentitel">Fahrplan</h1>
-    <p class="leise klein seitenhinweis">${ph.tage.length} Tage · ${e(formatTag(ph.tage[0].d))} – ${e(formatTag(ph.tage[ph.tage.length - 1].d))} · Tippe auf einen Tag für Details.</p>
-    <div class="planliste">${tage}</div>`;
+  return { titel: 'Fahrplan', html };
 }
+
+export function seiteTag(daten, eigene, jetzt, d) {
+  const ph = reisePhase(daten, jetzt);
+  const i = ph.tage.findIndex((t) => t.d === d);
+  const t = ph.tage[i];
+  if (!t) return { titel: 'Tag', zurueck: '#plan', html: leer('Diesen Tag gibt es im Fahrplan nicht.') };
+  const ort = ortInfo(daten, t.p);
+  const stay = t.stay && !/flieger/i.test(t.stay) ? t.stay : null;
+  const ausgaben = gueltigeAusgaben(eigene).filter((a) => a.d === d);
+  const thb = ausgaben.reduce((s, a) => s + inThb(a), 0);
+  const tb = eintragVon(eigene, d);
+  const vor = ph.tage[i - 1];
+  const nach = ph.tage[i + 1];
+
+  return {
+    titel: formatTag(d),
+    zurueck: '#plan',
+    html: `
+      ${held({
+        label: `${tagLabel(ph, d).label} · ${formatTag(d, true)}`,
+        titel: t.t || ort.name,
+        unterHtml: t.p && t.p !== 'travel' ? `<span class="punkt" style="--ort:${ort.farbe}"></span>${e(ort.name)}` : '',
+        farbe: ort.farbe,
+      })}
+      ${zeile('', 'Programm', t.prog)}
+      ${zeilen(t.tr).length ? abschnitt('Transport', `<ul class="schritte">${zeilen(t.tr).map((x) => `<li>${e(x)}</li>`).join('')}</ul>`) : ''}
+      ${zeile('', 'Unterkunft', t.stay)}
+      ${zeile('', 'Check-in / Check-out', t.ci, true)}
+      ${t.note ? `<p class="notiz">📝 ${zeilen(t.note).map(e).join('<br>')}</p>` : ''}
+      ${abschnitt('', liste([
+        stay ? { href: mapsLink(`${stay} ${ort.name}`), extern: true, icon: '📍', titel: 'Unterkunft in Google Maps' } : null,
+        { href: '#ausgaben/liste', icon: '💸', titel: 'Ausgaben', wert: thb ? formatThb(thb) : '–' },
+        { href: `#tagebuch/${d}`, icon: tb?.stimmung || '📔', titel: tb?.text || tb?.fotos?.length ? 'Tagebuch-Eintrag' : 'Tagebuch schreiben' },
+      ]))}
+      <nav class="blaettern">
+        ${vor ? `<a class="knopf" href="#tag/${vor.d}" data-ersetzen>‹ ${e(formatTag(vor.d))}</a>` : '<span></span>'}
+        ${nach ? `<a class="knopf" href="#tag/${nach.d}" data-ersetzen>${e(formatTag(nach.d))} ›</a>` : '<span></span>'}
+      </nav>`,
+  };
+}
+
+export { plusTage };

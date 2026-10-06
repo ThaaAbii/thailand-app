@@ -1,166 +1,185 @@
-// Checkliste und Packliste (Anzeige + Bedienung).
+// Checkliste und Packliste: Übersicht → Gruppe/Bereich → einzelne Punkte.
 import { e } from './ui.js';
-import { balken } from './bausteine.js';
+import { liste, abschnitt, balken, held, leer } from './bausteine.js';
 import {
   BEREICHE, LIMITS, PACK_VORLAGE, checklistenGruppen, fortschritt, packSummen, packWarnungen,
   gewichtVon, formatKg, formatGramm, neueId,
 } from './listenlogik.js';
 
-function tabs(aktiv) {
-  return `
-    <h1 class="seitentitel">Listen</h1>
-    <nav class="tabs" aria-label="Listen">
-      <a href="#checkliste" class="${aktiv === 'checkliste' ? 'aktiv' : ''}">✅ Checkliste</a>
-      <a href="#packliste" class="${aktiv === 'packliste' ? 'aktiv' : ''}">🧳 Packliste</a>
-    </nav>`;
-}
-
 // ---------- Checkliste ----------
 
-export function renderCheckliste(daten, eigene, { ausblenden }) {
+export function seiteCheckliste(daten, eigene, teile, { ausblenden }) {
   const gruppen = checklistenGruppen(daten, eigene);
+  const nr = teile[0] != null ? Number(teile[0]) : null;
+  if (nr != null && gruppen[nr]) return gruppenSeite(gruppen[nr], nr, ausblenden);
   const alle = fortschritt(gruppen.flatMap((g) => g.punkte));
+  return {
+    titel: 'Checkliste',
+    zurueck: '#mehr',
+    html: `
+      <section class="held">
+        <p class="held__label">Checkliste</p>
+        <h1 class="held__zahl">${alle.prozent} <small>%</small></h1>
+        <p class="held__unter">${alle.erledigt} von ${alle.gesamt} erledigt</p>
+        ${balken(alle.prozent, alle.prozent === 100 ? 'gruen' : '')}
+      </section>
+      ${liste(gruppen.map((g, i) => {
+        const f = fortschritt(g.punkte);
+        return { href: `#checkliste/${i}`, titel: g.gruppe, wert: f.gesamt && f.erledigt === f.gesamt ? '✓' : `${f.erledigt}/${f.gesamt}`, wertKlasse: f.erledigt === f.gesamt ? 'text-gruen' : '' };
+      })) || leer('Keine Checkliste in den Reisedaten.')}
+      <button class="knopf knopf--text" data-aktion="punkt-neu" data-gruppe="Eigene Punkte">＋ Eigener Punkt</button>`,
+  };
+}
 
-  const gruppenHtml = gruppen.map((g) => {
-    const f = fortschritt(g.punkte);
-    const sichtbar = ausblenden ? g.punkte.filter((p) => !p.erledigt) : g.punkte;
-    return `
-      <section class="karte">
-        <h2 class="gruppenkopf"><span>${e(g.gruppe)}</span><span class="leise klein">${f.erledigt}/${f.gesamt}</span></h2>
-        ${balken(f.prozent, f.prozent === 100 ? 'gruen' : '')}
-        <ul class="checkliste">
-          ${sichtbar.map((p) => `
-            <li class="check${p.erledigt ? ' check--erledigt' : ''}">
-              <label>
-                <input type="checkbox" data-check="${e(p.key)}" ${p.erledigt ? 'checked' : ''}>
-                <span class="check__text"><b>${e(p.text)}</b>${p.notiz ? `<small>${e(p.notiz)}</small>` : ''}</span>
-              </label>
-              ${p.eigen ? `<button class="icon-knopf" data-aktion="punkt-loeschen" data-id="${e(p.id)}" aria-label="Punkt löschen">🗑️</button>` : ''}
-            </li>`).join('')}
-        </ul>
-        ${ausblenden && !sichtbar.length && g.punkte.length ? '<p class="leise klein">Alles erledigt ✓</p>' : ''}
-        <button class="knopf knopf--klein" data-aktion="punkt-neu" data-gruppe="${e(g.gruppe)}">＋ Punkt hinzufügen</button>
-      </section>`;
-  }).join('');
-
-  return `
-    ${tabs('checkliste')}
-    <section class="karte">
-      <div class="gruppenkopf"><b>${alle.erledigt} von ${alle.gesamt} erledigt</b><b>${alle.prozent} %</b></div>
-      ${balken(alle.prozent, alle.prozent === 100 ? 'gruen' : '')}
+function gruppenSeite(g, nr, ausblenden) {
+  const f = fortschritt(g.punkte);
+  const sichtbar = ausblenden ? g.punkte.filter((p) => !p.erledigt) : g.punkte;
+  return {
+    titel: g.gruppe,
+    zurueck: '#checkliste',
+    html: `
+      ${held({ label: `${f.erledigt} von ${f.gesamt} erledigt`, titel: g.gruppe })}
+      <div class="liste">
+        ${sichtbar.map((p) => `
+          <label class="lz lz--check${p.erledigt ? ' lz--erledigt' : ''}">
+            <input type="checkbox" data-check="${e(p.key)}" ${p.erledigt ? 'checked' : ''}>
+            <span class="lz__text">
+              <span class="lz__titel">${e(p.text)}</span>
+              ${p.notiz ? `<span class="lz__unter">${e(p.notiz)}</span>` : ''}
+            </span>
+            ${p.eigen ? `<button class="lz__klein" data-aktion="punkt-loeschen" data-id="${e(p.id)}" aria-label="Punkt löschen">🗑️</button>` : ''}
+          </label>`).join('')}
+      </div>
+      ${ausblenden && !sichtbar.length && g.punkte.length ? leer('Alles erledigt ✓') : ''}
+      <button class="knopf knopf--text" data-aktion="punkt-neu" data-gruppe="${e(g.gruppe)}">＋ Punkt hinzufügen</button>
       <label class="schalter">
         <input type="checkbox" data-einstellung="ausblenden" ${ausblenden ? 'checked' : ''}>
         <span>Erledigte ausblenden</span>
-      </label>
-    </section>
-    ${gruppenHtml || '<section class="karte"><p class="leise">Keine Checkliste in den Reisedaten.</p></section>'}
-    <button class="knopf" data-aktion="punkt-neu" data-gruppe="Eigene Punkte">＋ Punkt in neuer Gruppe „Eigene Punkte“</button>`;
+      </label>`,
+  };
 }
 
 // ---------- Packliste ----------
 
-export function renderPackliste(eigene, { bearbeiten }) {
-  const liste = Array.isArray(eigene?.packliste) ? eigene.packliste : null;
-  if (!liste) {
-    return `
-      ${tabs('packliste')}
-      <section class="karte">
-        <h2>Packliste mit Gewicht</h2>
-        <p>Trag ein, was du mitnimmst, und wie viel es wiegt. Die App rechnet aus, ob dein Gepäck unter den Grenzen bleibt:</p>
-        <ul class="infoliste">
-          <li><b>Bangkok Airways:</b> 20 kg Aufgabegepäck</li>
-          <li><b>Lufthansa:</b> 23 kg Aufgabegepäck + 8 kg Handgepäck</li>
-        </ul>
-        <button class="knopf knopf--haupt" data-aktion="pack-vorlage">📋 Mit Vorschlagsliste starten</button>
-        <button class="knopf knopf--breit" data-aktion="pack-leer">Leer starten</button>
-        <p class="leise klein">Die Vorschläge haben geschätzte Gewichte – am besten mit einer Küchenwaage nachwiegen und anpassen.</p>
-      </section>`;
-  }
-
-  const s = packSummen(liste);
-  const warnungen = packWarnungen(s);
-
-  const bereiche = BEREICHE.map((b) => {
-    const teile = liste.filter((x) => (BEREICHE.some((y) => y.key === x.wo) ? x.wo : 'aufgabe') === b.key);
-    const neu = bearbeiten?.neu && bearbeiten.wo === b.key;
-    return `
-      <section class="karte">
-        <h2 class="gruppenkopf"><span>${b.icon} ${b.name}</span><span>${formatKg(s[b.key])}</span></h2>
-        <ul class="packliste">
-          ${teile.map((x) => (bearbeiten?.id === x.id ? `<li>${formular(x)}</li>` : `
-            <li class="packteil${x.gepackt ? ' packteil--gepackt' : ''}">
-              <label>
-                <input type="checkbox" data-gepackt="${e(x.id)}" ${x.gepackt ? 'checked' : ''} aria-label="gepackt">
-                <span class="packteil__name">${e(x.name)}</span>
-              </label>
-              <span class="packteil__g">${(Number(x.anzahl) || 1) > 1 ? `${e(x.anzahl)} × ${formatGramm(Number(x.g) || 0)} = ` : ''}<b>${formatGramm(gewichtVon(x))}</b></span>
-              <button class="icon-knopf" data-aktion="pack-bearbeiten" data-id="${e(x.id)}" aria-label="${e(x.name)} bearbeiten">✏️</button>
-            </li>`)).join('')}
-          ${neu ? `<li>${formular({ id: bearbeiten.id, name: '', g: '', anzahl: 1, wo: b.key }, true)}</li>` : ''}
-        </ul>
-        ${!teile.length && !neu ? '<p class="leise klein">Noch nichts eingetragen.</p>' : ''}
-        ${neu ? '' : `<button class="knopf knopf--klein" data-aktion="pack-neu" data-wo="${b.key}">＋ Gegenstand</button>`}
-      </section>`;
-  }).join('');
-
-  return `
-    ${tabs('packliste')}
-    <section class="karte">
-      <h2>Gewicht</h2>
-      <div class="gewicht">
-        <div class="gruppenkopf"><span>🧳 Aufgabegepäck</span><b>${formatKg(s.aufgabe)}</b></div>
-        <div class="skala">
-          ${balken((s.aufgabe / LIMITS.lufthansa) * 100, s.aufgabe > LIMITS.lufthansa ? 'rot' : s.aufgabe > LIMITS.bangkokAirways ? 'orange' : 'gruen')}
-          <span class="skala__marke" style="left:${(LIMITS.bangkokAirways / LIMITS.lufthansa) * 100}%"></span>
-        </div>
-        <p class="leise klein">Strich = 20 kg (Bangkok Airways) · Ende = 23 kg (Lufthansa)</p>
-      </div>
-      <div class="gewicht">
-        <div class="gruppenkopf"><span>🎒 Handgepäck</span><b>${formatKg(s.hand)} <span class="leise">/ 8 kg</span></b></div>
-        ${balken((s.hand / LIMITS.handgepaeck) * 100, s.hand > LIMITS.handgepaeck ? 'rot' : 'gruen')}
-      </div>
-      <div class="gruppenkopf gewicht"><span>🧍 Am Körper</span><b>${formatKg(s.koerper)}</b></div>
-      ${warnungen.map((w) => `<p class="warnung warnung--${w.stufe}">${w.stufe === 'ok' ? '✅' : '⚠️'} ${e(w.text)}</p>`).join('')}
-      <p class="leise klein">Gepackt: ${s.gepackt} von ${s.anzahl} Sachen</p>
-    </section>
-    ${bereiche}
-    <section class="karte">
-      <h2>Packliste verwalten</h2>
-      <div class="knopfreihe">
-        <button class="knopf" data-aktion="pack-haken-weg">↩️ Alle „gepackt“-Haken entfernen</button>
-        <button class="knopf" data-aktion="pack-vorlage-ergaenzen">📋 Fehlende Vorschläge ergänzen</button>
-      </div>
-      <p class="leise klein">„Haken entfernen“ ist praktisch, wenn du für die nächste Etappe neu packst.</p>
-    </section>`;
+function bereichVon(x) {
+  return BEREICHE.some((b) => b.key === x?.wo) ? x.wo : 'aufgabe';
 }
 
-function formular(x, neu = false) {
-  return `
-    <div class="packform" data-form="${e(x.id)}">
-      <label class="feld feld--breit"><span>Was?</span>
-        <input class="eingabe" name="name" value="${e(x.name)}" placeholder="z. B. Sonnenbrille" maxlength="80">
-      </label>
-      <label class="feld"><span>Anzahl</span>
-        <input class="eingabe" name="anzahl" type="number" inputmode="numeric" min="1" max="99" value="${e(x.anzahl ?? 1)}">
-      </label>
-      <label class="feld"><span>Gramm (je Stück)</span>
-        <input class="eingabe" name="g" type="number" inputmode="numeric" min="0" max="50000" value="${e(x.g)}" placeholder="z. B. 150">
-      </label>
-      <label class="feld feld--breit"><span>Wo?</span>
-        <select class="eingabe" name="wo">
-          ${BEREICHE.map((b) => `<option value="${b.key}" ${x.wo === b.key ? 'selected' : ''}>${b.icon} ${b.name}</option>`).join('')}
-        </select>
-      </label>
-      <div class="knopfreihe feld--breit">
-        <button class="knopf knopf--haupt" data-aktion="pack-speichern">Speichern</button>
-        <button class="knopf" data-aktion="pack-abbrechen">Abbrechen</button>
-        ${neu ? '' : '<button class="knopf knopf--gefahr" data-aktion="pack-loeschen">🗑️ Löschen</button>'}
+export function seitePackliste(eigene, teile) {
+  const liste0 = Array.isArray(eigene?.packliste) ? eigene.packliste : null;
+  const [unter, param] = teile;
+  if (unter === 'teil') {
+    const x = (liste0 ?? []).find((y) => y.id === param);
+    return x ? formularSeite(x, false) : { titel: 'Packliste', zurueck: '#packliste', html: leer('Diesen Gegenstand gibt es nicht mehr.') };
+  }
+  if (unter === 'neu') return formularSeite({ id: neueId(), name: '', g: '', anzahl: 1, wo: BEREICHE.some((b) => b.key === param) ? param : 'aufgabe' }, true);
+  if (unter && BEREICHE.some((b) => b.key === unter)) return bereichSeite(liste0 ?? [], unter);
+
+  if (!liste0) {
+    return {
+      titel: 'Packliste',
+      zurueck: '#mehr',
+      html: `
+        ${held({ titel: 'Packliste mit Gewicht', unter: 'Trag ein, was du mitnimmst – die App rechnet mit, ob dein Gepäck unter den Grenzen bleibt.' })}
+        ${liste([
+          { icon: '✈️', titel: 'Bangkok Airways', wert: '20 kg' },
+          { icon: '✈️', titel: 'Lufthansa', unter: '+ 8 kg Handgepäck', wert: '23 kg' },
+        ])}
+        <button class="knopf knopf--haupt knopf--breit knopf--gross" data-aktion="pack-vorlage">Mit Vorschlagsliste starten</button>
+        <button class="knopf knopf--text" data-aktion="pack-leer">Leer starten</button>
+        <p class="leise klein zentriert">Die Vorschläge haben geschätzte Gewichte – am besten mit einer Küchenwaage nachwiegen.</p>`,
+    };
+  }
+
+  const s = packSummen(liste0);
+  const warnungen = packWarnungen(s);
+  const stufe = s.aufgabe > LIMITS.lufthansa ? 'rot' : s.aufgabe > LIMITS.bangkokAirways ? 'orange' : 'gruen';
+  return {
+    titel: 'Packliste',
+    zurueck: '#mehr',
+    html: `
+      <section class="held">
+        <p class="held__label">Aufgabegepäck</p>
+        <h1 class="held__zahl">${formatKg(s.aufgabe).replace(' kg', '')} <small>kg</small></h1>
+        <div class="skala">
+          ${balken((s.aufgabe / LIMITS.lufthansa) * 100, stufe)}
+          <span class="skala__marke" style="left:${(LIMITS.bangkokAirways / LIMITS.lufthansa) * 100}%"></span>
+        </div>
+        <p class="leise klein">Strich = 20 kg Bangkok Airways · Ende = 23 kg Lufthansa</p>
+        ${warnungen.map((w) => `<p class="warnung warnung--${w.stufe}">${w.stufe === 'ok' ? '✅' : '⚠️'} ${e(w.text)}</p>`).join('')}
+      </section>
+      ${liste(BEREICHE.map((b) => {
+        const teile2 = liste0.filter((x) => bereichVon(x) === b.key);
+        const gepackt = teile2.filter((x) => x.gepackt).length;
+        return {
+          href: `#packliste/${b.key}`, icon: b.icon, titel: b.name,
+          unter: teile2.length ? `${gepackt} von ${teile2.length} gepackt` : 'leer',
+          wert: formatKg(s[b.key]) + (b.key === 'hand' ? ' / 8' : ''),
+          wertKlasse: b.key === 'hand' && s.hand > LIMITS.handgepaeck ? 'text-rot' : '',
+        };
+      }))}
+      ${abschnitt('Verwalten', liste([
+        { aktion: 'pack-haken-weg', icon: '↩️', titel: 'Alle „gepackt“-Haken entfernen', unter: 'Praktisch, wenn du für die nächste Etappe neu packst' },
+        { aktion: 'pack-vorlage-ergaenzen', icon: '📋', titel: 'Fehlende Vorschläge ergänzen' },
+      ]))}`,
+  };
+}
+
+function bereichSeite(liste0, wo) {
+  const b = BEREICHE.find((x) => x.key === wo);
+  const teile = liste0.filter((x) => bereichVon(x) === wo);
+  const summe = teile.reduce((n, x) => n + gewichtVon(x), 0);
+  return {
+    titel: b.name,
+    zurueck: '#packliste',
+    html: `
+      ${held({ label: `${teile.filter((x) => x.gepackt).length} von ${teile.length} gepackt`, titel: `${b.icon} ${formatKg(summe)}` })}
+      <div class="liste">
+        ${teile.map((x) => `
+          <div class="lz lz--check${x.gepackt ? ' lz--erledigt' : ''}">
+            <input type="checkbox" data-gepackt="${e(x.id)}" ${x.gepackt ? 'checked' : ''} aria-label="${e(x.name)} gepackt">
+            <a class="lz__text lz__link" href="#packliste/teil/${e(x.id)}">
+              <span class="lz__titel">${e(x.name)}</span>
+              <span class="lz__unter">${(Number(x.anzahl) || 1) > 1 ? `${e(x.anzahl)} × ${formatGramm(Number(x.g) || 0)}` : 'antippen zum Bearbeiten'}</span>
+            </a>
+            <span class="lz__wert">${formatGramm(gewichtVon(x))}</span>
+          </div>`).join('')}
       </div>
-    </div>`;
+      ${!teile.length ? leer('Noch nichts eingetragen.') : ''}
+      <a class="knopf knopf--text" href="#packliste/neu/${wo}">＋ Gegenstand hinzufügen</a>`,
+  };
+}
+
+function formularSeite(x, neu) {
+  return {
+    titel: neu ? 'Neuer Gegenstand' : 'Bearbeiten',
+    zurueck: `#packliste/${bereichVon(x)}`,
+    html: `
+      <div class="formular" data-form="${e(x.id)}">
+        <label class="feld"><span>Was?</span>
+          <input class="eingabe" name="name" value="${e(x.name)}" placeholder="z. B. Sonnenbrille" maxlength="80" ${neu ? 'autofocus' : ''}>
+        </label>
+        <div class="feldreihe">
+          <label class="feld"><span>Anzahl</span>
+            <input class="eingabe" name="anzahl" type="number" inputmode="numeric" min="1" max="99" value="${e(x.anzahl ?? 1)}">
+          </label>
+          <label class="feld"><span>Gramm je Stück</span>
+            <input class="eingabe" name="g" type="number" inputmode="numeric" min="0" max="50000" value="${e(x.g)}" placeholder="z. B. 150">
+          </label>
+        </div>
+        <label class="feld"><span>Wo?</span>
+          <select class="eingabe" name="wo">
+            ${BEREICHE.map((b) => `<option value="${b.key}" ${bereichVon(x) === b.key ? 'selected' : ''}>${b.icon} ${b.name}</option>`).join('')}
+          </select>
+        </label>
+        <button class="knopf knopf--haupt knopf--breit knopf--gross" data-aktion="pack-speichern">Speichern</button>
+        ${neu ? '' : '<button class="knopf knopf--text knopf--gefahr" data-aktion="pack-loeschen">Gegenstand löschen</button>'}
+      </div>`,
+  };
 }
 
 // ---------- Bedienung ----------
-// ctx: { state, speichereEigene(), render(), toast(text) }
+// ctx: { state, speichereEigene(), render(), toast(text), zurueck(ziel), vibriere() }
 
 function packliste(ctx) {
   if (!Array.isArray(ctx.state.eigene.packliste)) ctx.state.eigene.packliste = [];
@@ -180,7 +199,8 @@ export const listenAktionen = {
     ctx.speichereEigene();
     ctx.render();
   },
-  'punkt-loeschen': (el, ctx) => {
+  'punkt-loeschen': (el, ctx, ev) => {
+    ev?.preventDefault();
     if (!confirm('Diesen eigenen Punkt löschen?')) return;
     const eigene = ctx.state.eigene;
     eigene.checklisteEigene = (eigene.checklisteEigene ?? []).filter((p) => p.id !== el.dataset.id);
@@ -199,10 +219,10 @@ export const listenAktionen = {
     ctx.render();
   },
   'pack-vorlage-ergaenzen': (el, ctx) => {
-    const liste = packliste(ctx);
-    const namen = new Set(liste.map((x) => x.name));
+    const liste0 = packliste(ctx);
+    const namen = new Set(liste0.map((x) => x.name));
     const neu = ausVorlage().filter((x) => !namen.has(x.name));
-    liste.push(...neu);
+    liste0.push(...neu);
     ctx.speichereEigene();
     ctx.toast(neu.length ? `${neu.length} Vorschläge ergänzt` : 'Alle Vorschläge sind schon drin');
     ctx.render();
@@ -213,28 +233,16 @@ export const listenAktionen = {
     ctx.speichereEigene();
     ctx.render();
   },
-  'pack-neu': (el, ctx) => {
-    ctx.state.packBearbeiten = { id: neueId(), wo: el.dataset.wo, neu: true };
-    ctx.render();
-    fokusInFormular();
-  },
-  'pack-bearbeiten': (el, ctx) => {
-    ctx.state.packBearbeiten = { id: el.dataset.id };
-    ctx.render();
-  },
-  'pack-abbrechen': (el, ctx) => {
-    ctx.state.packBearbeiten = null;
-    ctx.render();
-  },
   'pack-loeschen': (el, ctx) => {
-    const id = el.closest('[data-form]').dataset.form;
-    ctx.state.eigene.packliste = packliste(ctx).filter((x) => x.id !== id);
-    ctx.state.packBearbeiten = null;
+    if (!confirm('Diesen Gegenstand löschen?')) return;
+    const form = document.querySelector('[data-form]');
+    const x = packliste(ctx).find((y) => y.id === form.dataset.form);
+    ctx.state.eigene.packliste = packliste(ctx).filter((y) => y.id !== form.dataset.form);
     ctx.speichereEigene();
-    ctx.render();
+    ctx.zurueck(`#packliste/${bereichVon(x)}`);
   },
   'pack-speichern': (el, ctx) => {
-    const form = el.closest('[data-form]');
+    const form = document.querySelector('[data-form]');
     const wert = (n) => form.querySelector(`[name="${n}"]`).value;
     const name = wert('name').trim();
     if (!name) {
@@ -247,13 +255,13 @@ export const listenAktionen = {
       g: Math.max(0, Math.min(50000, Math.round(Number(wert('g')) || 0))),
       wo: BEREICHE.some((b) => b.key === wert('wo')) ? wert('wo') : 'aufgabe',
     };
-    const liste = packliste(ctx);
-    const vorhanden = liste.find((x) => x.id === form.dataset.form);
+    const liste0 = packliste(ctx);
+    const vorhanden = liste0.find((x) => x.id === form.dataset.form);
     if (vorhanden) Object.assign(vorhanden, daten);
-    else liste.push({ id: form.dataset.form, gepackt: false, ...daten });
-    ctx.state.packBearbeiten = null;
+    else liste0.push({ id: form.dataset.form, gepackt: false, ...daten });
     ctx.speichereEigene();
-    ctx.render();
+    ctx.vibriere();
+    ctx.zurueck(`#packliste/${daten.wo}`);
   },
 };
 
@@ -268,15 +276,8 @@ export function listenAenderung(t, ctx) {
   } else {
     return false;
   }
+  ctx.vibriere();
   ctx.speichereEigene();
   ctx.render();
   return true;
-}
-
-function fokusInFormular() {
-  requestAnimationFrame(() => {
-    const feld = document.querySelector('.packform [name="name"]');
-    feld?.scrollIntoView({ block: 'center' });
-    feld?.focus();
-  });
 }
