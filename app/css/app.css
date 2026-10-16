@@ -905,3 +905,26 @@ details summary { cursor: pointer; color: var(--akzent); margin-top: 6px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ---------- Hotel-Steckbrief ---------- */
+.hotelkopf { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: 8px 4px 0; font-size: 0.9rem; color: var(--leise); }
+.sterne { color: #f5a623; letter-spacing: 1px; }
+.note { display: inline-flex; align-items: center; justify-content: center; min-width: 34px; height: 24px; padding: 0 6px; border-radius: 7px; background: var(--akzent); color: #fff; font-weight: 700; font-size: 0.86rem; }
+.zitat { margin: 14px 0 0; padding: 14px 16px; border-radius: var(--radius); background: var(--karte); box-shadow: var(--schatten); font-size: 0.98rem; font-style: italic; color: var(--text); }
+.chips--ruhig { gap: 6px; }
+.held + .hotelkopf + .abschnitt, .hotelkopf + .abschnitt { margin-top: 16px; }
+.fakten + .zitat, .fakten + .chips, .zitat + .chips { margin-top: 14px; }
+.abschnitt + .fakten { margin-top: 14px; }
+.pille { display: inline-flex; align-items: center; min-height: 30px; padding: 4px 12px; border-radius: 99px; background: var(--karte); box-shadow: var(--schatten), inset 0 0 0 0.5px var(--linie-2); font-size: 0.86rem; font-weight: 500; color: var(--text); }
+.ausstattung .pille { background: var(--flaeche); box-shadow: none; }
+.pille--gruen { color: var(--gruen); }
+.pille--aus { color: var(--blass); text-decoration: line-through; }
+.preisliste { padding: 6px 0; }
+.preiszeile { display: flex; justify-content: space-between; gap: 12px; padding: 7px 16px; font-size: 0.94rem; }
+.preiszeile b { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.preiszeile--unter { padding-left: 32px; font-size: 0.84rem; color: var(--leise); }
+.preiszeile--unter b { font-weight: 500; }
+.preiszeile--rabatt b { color: var(--gruen); }
+.preiszeile--summe { margin-top: 6px; padding-top: 12px; border-top: 0.5px solid var(--linie-2); font-weight: 700; }
+.preiszeile--summe b { font-size: 1.15rem; font-weight: 700; }
+.ikon--klein { width: 15px; height: 15px; vertical-align: -2px; }

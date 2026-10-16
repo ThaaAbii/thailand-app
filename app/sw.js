@@ -23,6 +23,7 @@ const DATEIEN = [
   './js/details.js',
   './js/db.js',
   './js/ideen.js',
+  './js/hotel.js',
   './js/ikonen.js',
   './js/karte.js',
   './js/listen.js',

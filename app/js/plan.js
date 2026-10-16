@@ -9,7 +9,8 @@ import { liste, abschnitt, reiter, grosstitel, leer } from './bausteine.js';
 import { ikon } from './ikonen.js';
 import { alleAufgaben, anstehend, aufgabeZeile } from './aufgaben.js';
 import { fluegeAm, unterkunftDetails } from './anpassungen.js';
-import { flugZeile, hotelFotos } from './details.js';
+import { flugZeile } from './details.js';
+import { titelBild, bildTag } from './hotel.js';
 import { stationen } from './reise.js';
 import { gueltigeAusgaben, inEur, inThb, tagesbudgetEur, budgetStatus, STATUS_TEXT, formatThb, formatEur } from './ausgabenlogik.js';
 
@@ -101,7 +102,7 @@ function unterwegs(daten, ph, jetzt, eigene) {
 
   return `
     <section class="heutekarte" style="--ort:${ort.farbe}" ${ph.abflug && ph.abflug > jetzt ? `data-cd="${e(ph.abflug.toISOString())}"` : ''}>
-      ${stay && hotelFotos(eigene, stay)[0] ? `<a class="heutekarte__bild" href="#unterkunft/${encodeURIComponent(stay)}"><img data-foto="${e(hotelFotos(eigene, stay)[0])}" alt=""></a>` : ''}
+      ${stay && titelBild(daten, eigene, stay) ? `<a class="heutekarte__bild" href="#unterkunft/${encodeURIComponent(stay)}">${bildTag(titelBild(daten, eigene, stay))}</a>` : ''}
       <div class="heutekarte__kopf">
         <span class="marke">${e(ph.label)}</span>
         <span class="heutekarte__datum">${e(formatTag(ph.datum))}</span>

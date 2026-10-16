@@ -3,6 +3,7 @@ import { TZ_DE, formatTag, formatKurz } from './zeit.js';
 import { e } from './ui.js';
 import { ikon } from './ikonen.js';
 import { abflugZeit, checkinOeffnet, flughafenZone, zeitInZone } from './anpassungen.js';
+import { bildTag } from './hotel.js';
 
 const FLUGHAFEN = {
   HAJ: 'Hannover', MUC: 'München', FRA: 'Frankfurt', BER: 'Berlin', HAM: 'Hamburg', DUS: 'Düsseldorf', CGN: 'Köln',
@@ -88,12 +89,13 @@ export function bordkarte(f, jetzt, opts = {}) {
     </${tag}>`;
 }
 
-/** Fotokarte für ein Hotel. u: { name, von, bis, naechte }, fotoId optional. */
-export function hotelKarte(u, ort, fotoId, unter = '') {
+/** Fotokarte für ein Hotel. u: { name, von, bis, naechte }, bild: { id } | { src } | null. */
+export function hotelKarte(u, ort, bild, unter = '') {
+  const fotoId = bild;
   return `
     <a class="hotelkarte${fotoId ? '' : ' hotelkarte--ohne'}" href="#unterkunft/${encodeURIComponent(u.name)}" style="--ort:${ort.farbe}">
       <span class="hotelkarte__bild">
-        ${fotoId ? `<img data-foto="${e(fotoId)}" alt="">` : `<span class="hotelkarte__leer">${ikon('bett')}</span>`}
+        ${bild ? bildTag(bild) : `<span class="hotelkarte__leer">${ikon('bett')}</span>`}
         <span class="hotelkarte__marke">${u.naechte} ${u.naechte === 1 ? 'Nacht' : 'Nächte'}</span>
       </span>
       <span class="hotelkarte__text">
