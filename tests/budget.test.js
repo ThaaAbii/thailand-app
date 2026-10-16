@@ -80,3 +80,13 @@ test('Hotel-Steckbrief aus den Reisedaten', async () => {
   assert.match(html, /Pool/);
   assert.ok(!/javascript:/.test(html));
 });
+
+test('Bilder aus den Reisedaten lassen sich ausblenden', async () => {
+  const { sichtbareHotelBilder, bildKennung, titelBild } = await import('../app/js/hotel.js');
+  const a = 'data:image/jpeg;base64,AAAA', b = 'data:image/jpeg;base64,BBBB';
+  const daten = { hotels: { H: { bilder: [a, b] } } };
+  const eigene = { hotelBilderWeg: { H: [bildKennung(a)] } };
+  assert.deepEqual(sichtbareHotelBilder(daten, eigene, 'H'), [b]);
+  assert.deepEqual(titelBild(daten, eigene, 'H'), { src: b });
+  assert.notEqual(bildKennung(a), bildKennung(b));
+});

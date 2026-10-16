@@ -10,7 +10,7 @@ import {
 } from './anpassungen.js';
 import { fotoAufnehmen } from './tagebuch.js';
 import { bordkarte, hotelKarte } from './visuell.js';
-import { hotelInfo, hotelBilder, titelBild, hotelKopfzeile, hotelAbschnitte } from './hotel.js';
+import { hotelInfo, sichtbareHotelBilder, bildKennung, titelBild, hotelKopfzeile, hotelAbschnitte } from './hotel.js';
 import { ikon } from './ikonen.js';
 
 function feld(name, label, wert, { mehrzeilig = false, typ = 'text', platzhalter = '', extra = '' } = {}) {
@@ -95,7 +95,7 @@ export function bilderSuche(name, ortName) {
 
 function galerie(daten, eigene, name) {
   const fotos = hotelFotos(eigene, name);
-  const bilder = hotelBilder(hotelInfo(daten, name));
+  const bilder = sichtbareHotelBilder(daten, eigene, name);
   const neu = `
     <label class="galerie__neu" aria-label="Fotos hinzufügen">
       <input type="file" id="hotel-foto" accept="image/*" multiple hidden data-hotel="${e(name)}">
@@ -142,6 +142,7 @@ export function seiteUnterkunft(daten, eigene, name, bearbeiten) {
       ${abschnitt('', liste([
         { href: `#unterkunft/${encodeURIComponent(name)}/bearbeiten`, icon: 'notiz', farbe: 'blau', titel: hatDetails ? 'Details bearbeiten' : 'Zimmer, Adresse, Telefon ergänzen' },
         { href: bilderSuche(name, ort.name), extern: true, icon: 'teilen', farbe: 'grau', titel: 'Fotos im Netz ansehen', unter: 'Öffnet die Google-Bildersuche' },
+        eigene?.hotelBilderWeg?.[name]?.length ? { aktion: 'bilder-zurueck', daten: { hotel: name }, icon: 'zurueck', farbe: 'grau', titel: 'Gelöschte Bilder wiederherstellen', unter: `${eigene.hotelBilderWeg[name].length} ausgeblendet`, pfeil: '' } : null,
       ]))}`,
   };
 }
@@ -261,17 +262,38 @@ function fluege(ctx) {
 }
 
 export const detailAktionen = {
+  'bilder-zurueck': (el, ctx) => {
+    delete ctx.state.eigene.hotelBilderWeg?.[el.dataset.hotel];
+    ctx.speichereEigene();
+    ctx.toast('Bilder wiederhergestellt');
+    ctx.render();
+  },
   'bild-zeigen': (el, ctx) => {
-    const src = hotelBilder(hotelInfo(ctx.daten(), el.dataset.hotel))[Number(el.dataset.nr)];
+    const name = el.dataset.hotel;
+    const src = sichtbareHotelBilder(ctx.daten(), ctx.state.eigene, name)[Number(el.dataset.nr)];
     if (!src) return;
     const ov = document.createElement('div');
     ov.className = 'fotoansicht';
-    ov.innerHTML = `<img src="${src}" alt=""><div class="fotoansicht__leiste"><button class="knopf" data-fa="zu">Schließen</button></div>`;
+    ov.innerHTML = `<img src="${src}" alt=""><div class="fotoansicht__leiste"><button class="knopf" data-fa="zu">Schließen</button><button class="knopf knopf--gefahr" data-fa="weg">Löschen</button></div>`;
     history.pushState({ foto: true }, '');
     window.addEventListener('popstate', () => ov.remove(), { once: true });
-    ov.addEventListener('click', () => history.back());
+    ov.addEventListener('click', async (ev) => {
+      const was = ev.target.closest('[data-fa]')?.dataset.fa;
+      if (was === 'weg') {
+        if (!confirm('Dieses Bild löschen?')) return;
+        const e2 = ctx.state.eigene;
+        e2.hotelBilderWeg ??= {};
+        e2.hotelBilderWeg[name] = [...new Set([...(e2.hotelBilderWeg[name] ?? []), bildKennung(src)])];
+        await ctx.speichereEigene();
+        history.back();
+        setTimeout(() => ctx.render(), 50);
+      } else if (was === 'zu' || ev.target === ov) {
+        history.back();
+      }
+    });
     document.body.append(ov);
   },
+
   'tag-speichern': (el, ctx) => {
     const form = document.querySelector('[data-tag-form]');
     const d = form.dataset.tagForm;
