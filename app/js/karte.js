@@ -225,7 +225,7 @@ function ortDetails(daten, key, abschnitte) {
       <h2 class="label label--ort">${e(ort.name)}</h2>
       <p class="leise klein">${tage.length} ${tage.length === 1 ? 'Tag' : 'Tage'}: ${e(formatTag(tage[0]?.d ?? abschnitte[0].von))} – ${e(formatTag(tage[tage.length - 1]?.d ?? abschnitte[0].bis))}</p>
       ${unterkuenfte.map((u) => `
-        <p>🛏️ ${e(u)}<br><a class="mehrlink" href="${mapsLink(`${u} ${ort.name}`)}" target="_blank" rel="noopener">In Google Maps öffnen ›</a></p>`).join('')}
+        <p><b>${e(u)}</b><br><a class="mehrlink" href="${mapsLink(`${u} ${ort.name}`)}" target="_blank" rel="noopener">In Google Maps öffnen ›</a></p>`).join('')}
       <a class="mehrlink" href="${mapsLink(`${ort.name} Thailand`)}" target="_blank" rel="noopener">${e(ort.name)} in Google Maps ›</a>
     </section>`;
 }

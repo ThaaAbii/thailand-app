@@ -1,15 +1,22 @@
-// Bausteine für das ruhige Listen-Design: Abschnitte mit Überschrift, Listenzeilen, Fortschritt.
+// Bausteine des Designs: weiße Karten mit feinen Zeilen, Abschnitte, Kacheln, Fortschritt.
 import { TZ_DE, TZ_TH, formatKurz, restText, fristStufe } from './zeit.js';
 import { e, zeilen } from './ui.js';
+import { ikon } from './ikonen.js';
+
+/** Weiße Karte mit feinem Rand. */
+export function karte(inhalt, klasse = '') {
+  if (!inhalt) return '';
+  return `<div class="karte ${klasse}">${inhalt}</div>`;
+}
 
 /**
- * Eine Liste aus Zeilen (wie in den Handy-Einstellungen).
+ * Karte aus Zeilen.
  * Zeile: { href?, aktion?, daten?, icon?, punkt?, titel, unter?, wert?, wertKlasse?, pfeil?, extern?, klasse? }
  */
 export function liste(zeilenListe, klasse = '') {
   const z = zeilenListe.filter(Boolean);
   if (!z.length) return '';
-  return `<div class="liste ${klasse}">${z.map(listenZeile).join('')}</div>`;
+  return karte(z.map(listenZeile).join(''), klasse);
 }
 
 export function listenZeile(z) {
@@ -22,55 +29,61 @@ export function listenZeile(z) {
   ].join(' ');
   let pfeil = '';
   if (z.pfeil != null) pfeil = z.pfeil;
-  else if (z.extern) pfeil = '<span class="lz__pfeil" aria-hidden="true">↗</span>';
-  else if (z.href) pfeil = '<span class="lz__pfeil" aria-hidden="true">›</span>';
+  else if (z.extern) pfeil = '<span class="zeile__extern" aria-hidden="true">↗</span>';
+  else if (z.href) pfeil = '<span class="zeile__pfeil" aria-hidden="true"></span>';
   return `
-    <${tag} class="lz ${z.klasse ?? ''}" ${attrs}>
-      ${z.punkt ? `<span class="lz__punkt" style="--ort:${z.punkt}"></span>` : ''}
-      ${z.icon ? `<span class="lz__icon" aria-hidden="true">${z.icon}</span>` : ''}
-      <span class="lz__text">
-        <span class="lz__titel">${z.titelHtml ?? e(z.titel)}</span>
-        ${z.unter || z.unterHtml ? `<span class="lz__unter">${z.unterHtml ?? e(z.unter)}</span>` : ''}
+    <${tag} class="zeile ${z.klasse ?? ''}" ${attrs}>
+      ${z.punkt ? `<span class="zeile__punkt" style="--ort:${z.punkt}"></span>` : ''}
+      ${z.icon && ikon(z.icon) ? `<span class="zeile__icon">${ikon(z.icon)}</span>` : ''}
+      <span class="zeile__text">
+        <span class="zeile__titel">${z.titelHtml ?? e(z.titel)}</span>
+        ${z.unter || z.unterHtml ? `<span class="zeile__unter">${z.unterHtml ?? e(z.unter)}</span>` : ''}
       </span>
-      ${z.wert != null || z.wertHtml ? `<span class="lz__wert ${z.wertKlasse ?? ''}">${z.wertHtml ?? e(z.wert)}</span>` : ''}
+      ${z.wert != null && z.wert !== '' || z.wertHtml ? `<span class="zeile__wert ${z.wertKlasse ?? ''}">${z.wertHtml ?? e(z.wert)}</span>` : ''}
       ${pfeil}
     </${tag}>`;
 }
 
-/** Abschnitt mit kleiner Überschrift. */
+/** Abschnitt mit kleiner Überschrift über einer Karte. */
 export function abschnitt(titel, inhalt, extra = '') {
   if (!inhalt) return '';
   return `<section class="abschnitt">${titel ? `<h2 class="label">${e(titel)}${extra}</h2>` : ''}${inhalt}</section>`;
 }
 
-/** Info-Block auf Detailseiten: Überschrift + (mehrzeiliger) Text. */
+/** Text-Block in einer Karte: kleine Überschrift + (mehrzeiliger) Text. */
 export function zeile(icon, titel, text, liste = false) {
   const z = zeilen(text);
   if (!z.length) return '';
   const inhalt = liste && z.length > 1
     ? `<ul class="info__liste">${z.map((x) => `<li>${e(x)}</li>`).join('')}</ul>`
     : `<p>${z.map(e).join('<br>')}</p>`;
-  return `
-    <div class="info">
-      <h3 class="label">${icon ? `<span aria-hidden="true">${icon}</span> ` : ''}${e(titel)}</h3>
-      ${inhalt}
-    </div>`;
+  return `<div class="info"><h3 class="info__titel">${e(titel)}</h3>${inhalt}</div>`;
+}
+
+/** Kacheln mit großer Zahl (2 nebeneinander). k: { href?, zahl, einheit?, label, ton? } */
+export function kacheln(liste0) {
+  const k = liste0.filter(Boolean);
+  if (!k.length) return '';
+  return `<div class="kacheln">${k.map((x) => `
+    <${x.href ? `a href="${e(x.href)}"` : 'div'} class="kachel${x.ton ? ` kachel--${x.ton}` : ''}">
+      <span class="kachel__zahl">${e(x.zahl)}${x.einheit ? `<small>${e(x.einheit)}</small>` : ''}</span>
+      <span class="kachel__label">${e(x.label)}</span>
+    </${x.href ? 'a' : 'div'}>`).join('')}</div>`;
 }
 
 const STUFE_FARBE = { rot: 'var(--rot)', orange: 'var(--orange)', gruen: 'var(--gruen)', vorbei: 'var(--leise)' };
 
-/** Eine Frist als Listenzeile. f.zeit muss ein Date sein. Farbe: rot ≤ 7 Tage, orange ≤ 21 Tage. */
+/** Eine Frist als Zeile. f.zeit muss ein Date sein. Farbe: rot ≤ 7 Tage, orange ≤ 21 Tage. */
 export function fristZeile(f, jetzt, tz = TZ_DE, href = '', kompakt = false) {
   const stufe = fristStufe(f.zeit, jetzt, tz);
   return {
     href,
     punkt: STUFE_FARBE[stufe],
-    titelHtml: `${f.s === 'crit' ? '<span title="wichtig">❗</span> ' : ''}${e(f.w)}`,
+    titelHtml: `${f.s === 'crit' ? '<span class="wichtig" title="wichtig"></span>' : ''}${e(f.w)}`,
     unterHtml: kompakt
       ? e(formatKurz(f.zeit, tz))
-      : `${f.h ? `${e(f.h)}<br>` : ''}🇩🇪 ${e(formatKurz(f.zeit, TZ_DE))} · 🇹🇭 ${e(formatKurz(f.zeit, TZ_TH))}`,
+      : `${f.h ? `${e(f.h)}<br>` : ''}DE ${e(formatKurz(f.zeit, TZ_DE))} · TH ${e(formatKurz(f.zeit, TZ_TH))}`,
     wert: restText(f.zeit, jetzt, tz),
-    wertKlasse: `text-${stufe}`,
     pfeil: '',
   };
 }
@@ -84,7 +97,7 @@ export function balken(prozent, stufe = '') {
   return `<div class="balken ${stufe ? `balken--${stufe}` : ''}" role="progressbar" aria-valuenow="${Math.round(p)}" aria-valuemin="0" aria-valuemax="100"><span style="width:${p}%"></span></div>`;
 }
 
-/** Großer Kopfbereich einer Seite (ohne Kasten). */
+/** Kopfbereich einer Seite (reine Typografie, ohne Kasten). */
 export function held({ label = '', titel = '', titelHtml = '', unter = '', unterHtml = '', farbe = '' }) {
   return `
     <section class="held" ${farbe ? `style="--ort:${farbe}"` : ''}>

@@ -25,7 +25,7 @@ function feld(name, label, wert, { mehrzeilig = false, typ = 'text', platzhalter
 export function seiteTagBearbeiten(original, aktuell, eigene, d) {
   const t = aktuell.tage.find((x) => x.d === d);
   const o = (original?.tage ?? []).find((x) => x.d === d);
-  if (!t) return { titel: 'Bearbeiten', zurueck: '#plan', html: leer('Diesen Tag gibt es nicht.') };
+  if (!t) return { titel: 'Bearbeiten', zurueck: '#reise', html: leer('Diesen Tag gibt es nicht.') };
   const geaendert = !!eigene?.tagAenderungen?.[d];
   return {
     titel: `${formatTag(d)} bearbeiten`,
@@ -35,7 +35,7 @@ export function seiteTagBearbeiten(original, aktuell, eigene, d) {
         <p class="leise klein">Ändere oder ergänze, was du willst. Mehrere Punkte bei Transport und Check-in einfach in neue Zeilen schreiben.</p>
         ${TAG_FELDER.map(([k, label, mehr]) => feld(k, label, t[k], { mehrzeilig: mehr, platzhalter: o?.[k] ? '' : 'leer' })).join('')}
         <button class="knopf knopf--haupt knopf--breit knopf--gross" data-aktion="tag-speichern">Speichern</button>
-        ${geaendert ? '<button class="knopf knopf--text knopf--gefahr" data-aktion="tag-zuruecksetzen">Auf Original aus reise-daten.json zurücksetzen</button>' : ''}
+        ${geaendert ? '<button class="knopf knopf--leise knopf--breit knopf--gefahr" data-aktion="tag-zuruecksetzen">Auf Original aus reise-daten.json zurücksetzen</button>' : ''}
       </div>`,
   };
 }
@@ -97,17 +97,17 @@ export function seiteUnterkunft(daten, eigene, name, bearbeiten) {
     html: `
       ${held({ label: u ? `${formatTag(u.von)} – ${formatTag(u.bis)} · ${u.naechte} ${u.naechte === 1 ? 'Nacht' : 'Nächte'}` : '', titel: name, unterHtml: u ? `<span class="punkt" style="--ort:${ort.farbe}"></span>${e(ort.name)}` : '' })}
       ${abschnitt('', liste(unterkunftZeilen(name, det, ort.name)))}
-      <a class="knopf knopf--text" href="#unterkunft/${encodeURIComponent(name)}/bearbeiten">✏️ Details bearbeiten</a>`,
+      <a class="knopf knopf--leise knopf--breit" href="#unterkunft/${encodeURIComponent(name)}/bearbeiten">Details bearbeiten</a>`,
   };
 }
 
 // ---------- Flüge ----------
 
 export function flugZeile(f, jetzt) {
-  const status = { erledigt: '✅ eingecheckt', unnoetig: '–' }[f.checkin] ?? (() => {
+  const status = { erledigt: 'eingecheckt', unnoetig: '–' }[f.checkin] ?? (() => {
     const ab = checkinOeffnet(f);
     if (!ab) return 'Check-in offen';
-    return ab > jetzt ? `Check-in ab ${formatKurz(ab, TZ_DE)}` : '⚠️ Check-in offen';
+    return ab > jetzt ? `Check-in ab ${formatKurz(ab, TZ_DE)}` : 'Check-in offen';
   })();
   return {
     href: `#flug/${f.id}`,
@@ -115,7 +115,7 @@ export function flugZeile(f, jetzt) {
     titel: `${flugName(f)}${f.von || f.nach ? ` · ${f.von || '?'} → ${f.nach || '?'}` : ''}`,
     unter: [formatTag(f.d), [f.abflug, f.ankunft].filter(Boolean).join(' – '), f.sitz && `Sitz ${f.sitz}`].filter(Boolean).join(' · '),
     wert: status,
-    wertKlasse: status.startsWith('⚠️') ? 'text-orange' : status.startsWith('✅') ? 'text-gruen' : '',
+    wertKlasse: status === 'Check-in offen' ? 'text-orange' : status === 'eingecheckt' ? 'text-gruen' : '',
   };
 }
 
@@ -129,12 +129,12 @@ export function seiteFluege(daten, eigene, jetzt) {
       ${fluege.length ? liste(fluege.map((f) => flugZeile(f, jetzt))) : leer('Noch keine Flüge eingetragen.')}
       ${vorschlaege.length ? abschnitt('Im Fahrplan gefunden', liste(vorschlaege.map((v, i) => ({
         aktion: 'flug-uebernehmen', daten: { index: i },
-        icon: '➕',
+        icon: 'plus',
         titel: `${v.nummer || v.airline || 'Flug'}${v.von ? ` · ${v.von}${v.nach ? ` → ${v.nach}` : ''}` : ''}`,
         unter: `${formatTag(v.d)}${v.abflug ? ` · ${v.abflug}` : ''} – antippen zum Übernehmen`,
         pfeil: '',
       })))) : ''}
-      <a class="knopf knopf--text" href="#flug/neu">＋ Flug hinzufügen</a>`,
+      <a class="knopf knopf--leise knopf--breit" href="#flug/neu">Flug hinzufügen</a>`,
   };
 }
 
@@ -155,7 +155,7 @@ export function seiteFlug(daten, eigene, jetzt, id, datum) {
       <div class="formular" data-flug-form="${e(f.id)}" data-neu="${neu ? '1' : ''}">
         <h2 class="label">Online-Check-in</h2>
         <div class="segment" role="radiogroup" aria-label="Online-Check-in">
-          ${[['offen', 'Noch offen'], ['erledigt', 'Erledigt ✓'], ['unnoetig', 'Nicht nötig']].map(([w, t]) => `
+          ${[['offen', 'Noch offen'], ['erledigt', 'Erledigt'], ['unnoetig', 'Nicht nötig']].map(([w, t]) => `
             <label class="segment__teil"><input type="radio" name="checkin" value="${w}" ${(f.checkin ?? 'offen') === w ? 'checked' : ''}><span>${t}</span></label>`).join('')}
         </div>
         ${ci ? `<p class="leise klein abstand-klein">Öffnet ${e(formatLang(ci, TZ_DE))} Uhr (deutsche Zeit) · ${e(formatKurz(ci, TZ_TH))} in Thailand</p>` : ''}
@@ -191,13 +191,13 @@ export function seiteFlug(daten, eigene, jetzt, id, datum) {
           ${(f.fotos ?? []).map((fid) => `<button class="foto" data-aktion="foto-zeigen" data-id="${e(fid)}" data-flug="${e(f.id)}" aria-label="Bild ansehen"><img data-foto="${e(fid)}" alt=""></button>`).join('')}
           <label class="foto foto--neu" aria-label="Bordkarte hinzufügen">
             <input type="file" id="flug-foto" accept="image/*" multiple hidden data-flug="${e(f.id)}">
-            <span>＋<small>Bild</small></span>
+            <span>+<small>Bild</small></span>
           </label>
         </div>
         <p class="leise klein abstand-klein">z. B. Screenshot der Bordkarte – funktioniert auch offline.</p>`}
 
         <button class="knopf knopf--haupt knopf--breit knopf--gross" data-aktion="flug-speichern">Speichern</button>
-        ${neu ? '' : '<button class="knopf knopf--text knopf--gefahr" data-aktion="flug-loeschen">Flug löschen</button>'}
+        ${neu ? '' : '<button class="knopf knopf--leise knopf--breit knopf--gefahr" data-aktion="flug-loeschen">Flug löschen</button>'}
       </div>`,
   };
 }

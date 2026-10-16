@@ -20,7 +20,7 @@ export function seiteDaten(s) {
 
       ${abschnitt('Reisedaten importieren', s.vorschau ? vorschauHtml(s.vorschau) : `
         <label class="knopf knopf--haupt knopf--breit">
-          📂 Datei auswählen
+          Datei auswählen
           <input type="file" id="import-datei" hidden>
         </label>
         <p class="leise klein">Deine <code>reise-daten.json</code> oder ein Backup dieser App, z. B. aus „Downloads“.</p>`)}
@@ -34,12 +34,12 @@ export function seiteDaten(s) {
         <p class="leise klein">${s.letztesBackup ? `Letztes Backup: ${e(formatLang(new Date(s.letztesBackup), TZ_DE))} Uhr. ` : ''}Mach regelmäßig ein Backup – vor allem, bevor du den Browser-Speicher leerst.</p>`)}
 
       ${s.installiert ? '' : abschnitt('Als App installieren', s.kannInstallieren
-        ? '<button class="knopf knopf--haupt knopf--breit" data-aktion="installieren">📲 Jetzt installieren</button>'
+        ? '<button class="knopf knopf--haupt knopf--breit" data-aktion="installieren">Jetzt installieren</button>'
         : '<p class="leise">In Chrome oben rechts auf <b>⋮</b> tippen und <b>„App installieren“</b> bzw. <b>„Zum Startbildschirm hinzufügen“</b> wählen.</p>')}
 
       ${abschnitt('Darstellung', `
         <div class="segment" role="radiogroup" aria-label="Farbschema">
-          ${[['system', 'Automatisch'], ['light', 'Hell'], ['dark', 'Dunkel']].map(([wert, text]) => `
+          ${[['light', 'Hell'], ['dark', 'Dunkel'], ['auto', 'Wie Handy']].map(([wert, text]) => `
             <label class="segment__teil">
               <input type="radio" name="thema" value="${wert}" ${s.thema === wert ? 'checked' : ''}>
               <span>${text}</span>
@@ -58,7 +58,7 @@ export function seiteDaten(s) {
         { icon: '🔒', titel: 'Speicher', wert: s.persistent ? 'geschützt ✓' : 'normal' },
         { icon: 'ℹ️', titel: 'Version', wert: s.version },
       ]))}
-      <button class="knopf knopf--text knopf--gefahr" data-aktion="demo-zurueck">Alles löschen &amp; Demo-Daten anzeigen</button>`,
+      <button class="knopf knopf--leise knopf--breit knopf--gefahr" data-aktion="demo-zurueck">Alles löschen &amp; Demo-Daten anzeigen</button>`,
   };
 }
 
@@ -77,7 +77,7 @@ function vorschauHtml(v) {
     <div class="hinweis">
       <p><strong>„${e(v.dateiname)}“</strong>${z.titel ? ` – ${e(z.titel)}` : ''}</p>
       <p>${z.tage} Tage${z.von ? ` (${e(formatTag(z.von))} – ${e(formatTag(z.bis))})` : ''} · ${z.fristen} Fristen · ${z.buchungen} Buchungen · ${z.checkpunkte} Checklisten-Punkte</p>
-      ${v.mitEigenen ? `<p>📦 Das ist ein Backup – deine Einträge${v.fotoAnzahl ? ` und ${v.fotoAnzahl} Fotos` : ''} werden wiederhergestellt.</p>` : '<p class="leise klein">Deine bisherigen Einträge bleiben erhalten.</p>'}
+      ${v.mitEigenen ? `<p>Das ist ein Backup – deine Einträge${v.fotoAnzahl ? ` und ${v.fotoAnzahl} Fotos` : ''} werden wiederhergestellt.</p>` : '<p class="leise klein">Deine bisherigen Einträge bleiben erhalten.</p>'}
       ${v.warnungen.length ? `<details><summary>${v.warnungen.length} Hinweis(e)</summary><ul>${v.warnungen.map((w) => `<li>${e(w)}</li>`).join('')}</ul></details>` : ''}
     </div>
     <div class="feldreihe">

@@ -28,6 +28,10 @@ und sind im Backup-Export unter `_app.eigene` enthalten. Fotos liegen im Indexed
   in `eigene.tagAenderungen` (Original bleibt, pro Tag zurücksetzbar); Hotel-Details in `eigene.unterkuenfte`;
   Flüge in `eigene.fluege` mit Online-Check-in-Status – offene Check-ins erscheinen automatisch als Fristen
 
+- ✅ Neuaufbau (Okt. 2026): Navigation **Heute · Reise · Aufgaben · Geld · Mehr**; „Aufgaben“ vereint Fristen,
+  Checkliste und Online-Check-ins (abhakbar, eigene Aufgaben mit Datum); „Reise“ gliedert die Tage nach Etappen.
+  Design: weiß, Karten mit feinem Rand, Schrift Figtree (lokal, OFL-Lizenz in `app/fonts/`), Linien-Symbole statt Emojis
+
 ## Aufbau
 
 ```

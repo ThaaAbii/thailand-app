@@ -7,7 +7,7 @@ import {
 } from '../app/js/anpassungen.js';
 import { TZ_DE, TZ_TH } from '../app/js/zeit.js';
 import { seiteTagBearbeiten, seiteUnterkunft, seiteUnterkuenfte, seiteFluege, seiteFlug } from '../app/js/details.js';
-import { seiteTag } from '../app/js/plan.js';
+import { seiteTag } from '../app/js/reise.js';
 import { renderHeute } from '../app/js/heute.js';
 
 const demo = JSON.parse(readFileSync(new URL('../app/demo-daten.json', import.meta.url)));

@@ -27,7 +27,7 @@ export function seiteCheckliste(daten, eigene, teile, { ausblenden }) {
         const f = fortschritt(g.punkte);
         return { href: `#checkliste/${i}`, titel: g.gruppe, wert: f.gesamt && f.erledigt === f.gesamt ? '✓' : `${f.erledigt}/${f.gesamt}`, wertKlasse: f.erledigt === f.gesamt ? 'text-gruen' : '' };
       })) || leer('Keine Checkliste in den Reisedaten.')}
-      <button class="knopf knopf--text" data-aktion="punkt-neu" data-gruppe="Eigene Punkte">＋ Eigener Punkt</button>`,
+      <button class="knopf knopf--leise knopf--breit" data-aktion="punkt-neu" data-gruppe="Eigene Punkte">＋ Eigener Punkt</button>`,
   };
 }
 
@@ -39,19 +39,19 @@ function gruppenSeite(g, nr, ausblenden) {
     zurueck: '#checkliste',
     html: `
       ${held({ label: `${f.erledigt} von ${f.gesamt} erledigt`, titel: g.gruppe })}
-      <div class="liste">
+      <div class="karte">
         ${sichtbar.map((p) => `
-          <label class="lz lz--check${p.erledigt ? ' lz--erledigt' : ''}">
+          <label class="zeile zeile--check${p.erledigt ? ' ist-erledigt' : ''}">
             <input type="checkbox" data-check="${e(p.key)}" ${p.erledigt ? 'checked' : ''}>
-            <span class="lz__text">
-              <span class="lz__titel">${e(p.text)}</span>
-              ${p.notiz ? `<span class="lz__unter">${e(p.notiz)}</span>` : ''}
+            <span class="zeile__text">
+              <span class="zeile__titel">${e(p.text)}</span>
+              ${p.notiz ? `<span class="zeile__unter">${e(p.notiz)}</span>` : ''}
             </span>
-            ${p.eigen ? `<button class="lz__klein" data-aktion="punkt-loeschen" data-id="${e(p.id)}" aria-label="Punkt löschen">🗑️</button>` : ''}
+            ${p.eigen ? `<button class="zeile__klein" data-aktion="punkt-loeschen" data-id="${e(p.id)}" aria-label="Punkt löschen">🗑️</button>` : ''}
           </label>`).join('')}
       </div>
       ${ausblenden && !sichtbar.length && g.punkte.length ? leer('Alles erledigt ✓') : ''}
-      <button class="knopf knopf--text" data-aktion="punkt-neu" data-gruppe="${e(g.gruppe)}">＋ Punkt hinzufügen</button>
+      <button class="knopf knopf--leise knopf--breit" data-aktion="punkt-neu" data-gruppe="${e(g.gruppe)}">＋ Punkt hinzufügen</button>
       <label class="schalter">
         <input type="checkbox" data-einstellung="ausblenden" ${ausblenden ? 'checked' : ''}>
         <span>Erledigte ausblenden</span>
@@ -86,7 +86,7 @@ export function seitePackliste(eigene, teile) {
           { icon: '✈️', titel: 'Lufthansa', unter: '+ 8 kg Handgepäck', wert: '23 kg' },
         ])}
         <button class="knopf knopf--haupt knopf--breit knopf--gross" data-aktion="pack-vorlage">Mit Vorschlagsliste starten</button>
-        <button class="knopf knopf--text" data-aktion="pack-leer">Leer starten</button>
+        <button class="knopf knopf--leise knopf--breit" data-aktion="pack-leer">Leer starten</button>
         <p class="leise klein zentriert">Die Vorschläge haben geschätzte Gewichte – am besten mit einer Küchenwaage nachwiegen.</p>`,
     };
   }
@@ -106,7 +106,7 @@ export function seitePackliste(eigene, teile) {
           <span class="skala__marke" style="left:${(LIMITS.bangkokAirways / LIMITS.lufthansa) * 100}%"></span>
         </div>
         <p class="leise klein">Strich = 20 kg Bangkok Airways · Ende = 23 kg Lufthansa</p>
-        ${warnungen.map((w) => `<p class="warnung warnung--${w.stufe}">${w.stufe === 'ok' ? '✅' : '⚠️'} ${e(w.text)}</p>`).join('')}
+        ${warnungen.map((w) => `<p class="warnung warnung--${w.stufe}">${e(w.text)}</p>`).join('')}
       </section>
       ${liste(BEREICHE.map((b) => {
         const teile2 = liste0.filter((x) => bereichVon(x) === b.key);
@@ -133,20 +133,20 @@ function bereichSeite(liste0, wo) {
     titel: b.name,
     zurueck: '#packliste',
     html: `
-      ${held({ label: `${teile.filter((x) => x.gepackt).length} von ${teile.length} gepackt`, titel: `${b.icon} ${formatKg(summe)}` })}
-      <div class="liste">
+      ${held({ label: `${teile.filter((x) => x.gepackt).length} von ${teile.length} gepackt`, titel: formatKg(summe) })}
+      <div class="karte">
         ${teile.map((x) => `
-          <div class="lz lz--check${x.gepackt ? ' lz--erledigt' : ''}">
+          <div class="zeile zeile--check${x.gepackt ? ' ist-erledigt' : ''}">
             <input type="checkbox" data-gepackt="${e(x.id)}" ${x.gepackt ? 'checked' : ''} aria-label="${e(x.name)} gepackt">
-            <a class="lz__text lz__link" href="#packliste/teil/${e(x.id)}">
-              <span class="lz__titel">${e(x.name)}</span>
-              <span class="lz__unter">${(Number(x.anzahl) || 1) > 1 ? `${e(x.anzahl)} × ${formatGramm(Number(x.g) || 0)}` : 'antippen zum Bearbeiten'}</span>
+            <a class="zeile__text zeile__link" href="#packliste/teil/${e(x.id)}">
+              <span class="zeile__titel">${e(x.name)}</span>
+              <span class="zeile__unter">${(Number(x.anzahl) || 1) > 1 ? `${e(x.anzahl)} × ${formatGramm(Number(x.g) || 0)}` : 'antippen zum Bearbeiten'}</span>
             </a>
-            <span class="lz__wert">${formatGramm(gewichtVon(x))}</span>
+            <span class="zeile__wert">${formatGramm(gewichtVon(x))}</span>
           </div>`).join('')}
       </div>
       ${!teile.length ? leer('Noch nichts eingetragen.') : ''}
-      <a class="knopf knopf--text" href="#packliste/neu/${wo}">＋ Gegenstand hinzufügen</a>`,
+      <a class="knopf knopf--leise knopf--breit" href="#packliste/neu/${wo}">Gegenstand hinzufügen</a>`,
   };
 }
 
@@ -173,7 +173,7 @@ function formularSeite(x, neu) {
           </select>
         </label>
         <button class="knopf knopf--haupt knopf--breit knopf--gross" data-aktion="pack-speichern">Speichern</button>
-        ${neu ? '' : '<button class="knopf knopf--text knopf--gefahr" data-aktion="pack-loeschen">Gegenstand löschen</button>'}
+        ${neu ? '' : '<button class="knopf knopf--leise knopf--breit knopf--gefahr" data-aktion="pack-loeschen">Gegenstand löschen</button>'}
       </div>`,
   };
 }

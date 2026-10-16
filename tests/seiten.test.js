@@ -2,11 +2,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { renderHeute } from '../app/js/heute.js';
-import { seitePlan, seiteTag } from '../app/js/plan.js';
+import { seiteReise, seiteTag } from '../app/js/reise.js';
+import { seiteAufgaben } from '../app/js/aufgaben.js';
 import { seiteAusgaben } from '../app/js/ausgaben.js';
-import { seiteCheckliste, seitePackliste } from '../app/js/listen.js';
+import { seitePackliste } from '../app/js/listen.js';
 import { seiteMehr, seiteBuchungen, seiteTipps } from '../app/js/mehr.js';
-import { seiteFristen } from '../app/js/fristen.js';
 import { seiteIdeen, ideenFuerOrt } from '../app/js/ideen.js';
 import { seiteTagebuch } from '../app/js/tagebuch.js';
 import { seiteThai } from '../app/js/thai.js';
@@ -47,14 +47,14 @@ for (const [phase, jetzt] of Object.entries(ZEITEN)) {
   test(`Alle Seiten rendern (${phase})`, () => {
     pruefe(renderHeute(demo, jetzt, eigene), 'heute');
     pruefe(renderHeute(demo, jetzt, {}), 'heute leer');
-    pruefe(seitePlan(demo, eigene, jetzt), 'plan');
+    pruefe(seiteReise(demo, eigene, jetzt), 'reise');
+    for (const t of [[], ['gruppe', '0'], ['erledigt'], ['neu']]) pruefe(seiteAufgaben(demo, eigene, jetzt, t, { ausblenden: false }), `aufgaben/${t}`);
     pruefe(seiteTag(demo, eigene, jetzt, '2026-11-21'), 'tag');
     for (const t of [[], ['neu'], ['bearbeiten', 'a1'], ['statistik'], ['liste'], ['einstellungen']]) {
       pruefe(seiteAusgaben(demo, eigene, jetzt, t, {}), `ausgaben/${t.join('/')}`);
     }
     pruefe(seiteTagebuch(demo, eigene, jetzt, []), 'tagebuch');
     pruefe(seiteTagebuch(demo, eigene, jetzt, ['2026-11-21']), 'tagebuch/tag');
-    pruefe(seiteFristen(demo, jetzt), 'fristen');
     pruefe(seiteNotfall(demo, jetzt), 'notfall');
     pruefe(seiteKarte(demo, jetzt, { ort: 'tao' }), 'karte');
   });
@@ -62,8 +62,6 @@ for (const [phase, jetzt] of Object.entries(ZEITEN)) {
 
 test('Menü- und Unterseiten', () => {
   pruefe(seiteMehr(demo, eigene), 'mehr');
-  pruefe(seiteCheckliste(demo, eigene, [], { ausblenden: false }), 'checkliste');
-  pruefe(seiteCheckliste(demo, eigene, ['1'], { ausblenden: true }), 'checkliste/1');
   pruefe(seitePackliste(eigene, []), 'packliste');
   pruefe(seitePackliste({}, []), 'packliste leer');
   pruefe(seitePackliste(eigene, ['aufgabe']), 'packliste/aufgabe');
@@ -80,8 +78,8 @@ test('Menü- und Unterseiten', () => {
 
 test('Unterseiten haben einen Zurück-Weg', () => {
   const j = ZEITEN.unterwegs;
-  assert.equal(seiteTag(demo, eigene, j, '2026-11-21').zurueck, '#plan');
-  assert.equal(seiteAusgaben(demo, eigene, j, ['neu'], {}).zurueck, '#ausgaben');
+  assert.equal(seiteTag(demo, eigene, j, '2026-11-21').zurueck, '#reise');
+  assert.equal(seiteAusgaben(demo, eigene, j, ['neu'], {}).zurueck, '#geld');
   assert.equal(seiteTagebuch(demo, eigene, j, ['2026-11-21']).zurueck, '#tagebuch');
   assert.equal(seiteIdeen(demo, eigene, ['samui']).zurueck, '#ideen');
   assert.equal(seiteAusgaben(demo, eigene, j, [], {}).zurueck, undefined);
