@@ -98,7 +98,7 @@ export function flugFristen(eigene) {
     .filter((x) => x.zeit)
     .map(({ f, zeit }) => ({
       t: zeit.toISOString(),
-      w: `Online-Check-in ${flugName(f)}${f.von && f.nach ? ` (${f.von} → ${f.nach})` : ''}`,
+      w: `Online-Check-in ${f.airline && f.nummer ? `${f.airline} ` : ''}${flugName(f)}${f.von && f.nach ? ` (${f.von} → ${f.nach})` : ''}`,
       h: `öffnet ${f.checkinStunden} Std. vor Abflug – danach in der App als „erledigt“ markieren`,
       s: 'warn',
       flug: f.id,
@@ -187,7 +187,7 @@ export function fluegeAusReisedaten(reise, eigene) {
         }
       }
     } else {
-      const neu = { id: `daten-${flugSchluessel(q).replace(/[^\w-]/g, '')}`, checkin: q.checkin === 'erledigt' ? 'erledigt' : 'offen', fotos: [] };
+      const neu = { id: `daten-${flugSchluessel(q).replace(/[^\w-]/g, '')}`, checkin: ['erledigt', 'unnoetig'].includes(q.checkin) ? q.checkin : 'offen', fotos: [] };
       for (const k of FLUG_FELDER) if (q[k] != null && q[k] !== '') neu[k] = typeof q[k] === 'string' ? q[k].trim() : q[k];
       eigene.fluege.push(neu);
       geaendert = true;

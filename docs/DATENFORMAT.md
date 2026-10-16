@@ -43,6 +43,7 @@ Alle Felder sind optional. Unbekanntes einfach weglassen – **nichts erfinden**
 | `adresse`, `telefon`, `mail` | Text | |
 | `checkin`, `checkout` | Text | `"Mi., 18.11. · 14:00–24:00"` |
 | `zimmer` | Text (kurz) | `"Einzelzimmer"` |
+| `buchung` | Text | Buchungsnummer / PIN des Hotels |
 | `zimmerInfo` | `{ name, merkmale[], ausstattung[] }` | merkmale: Bett, m², Blick, Personen, Mahlzeiten |
 | `bezahlt` | Zahl (€) | `58.67` |
 | `bezahltText` | Text | `"Online-Vorauszahlung · bezahlt"` oder `"vor Ort zahlen"` |
@@ -74,6 +75,10 @@ Alle Felder sind optional. Unbekanntes einfach weglassen – **nichts erfinden**
 | `code` | Buchungscode/PNR | `"ABC123"` |
 | `checkinStunden` | Zahl | Online-Check-in öffnet … Std. vor Abflug |
 | `notiz` | Text | Umstieg, Ticketnummer, Klasse … |
+| `checkin` | `offen` / `erledigt` / `unnoetig` | `unnoetig` für 2. Teilstrecke (Check-in läuft mit der 1.) |
+
+Bei Umstiegen `checkinStunden` nur bei der **ersten** Teilstrecke setzen, sonst erscheinen doppelte Check-in-Aufgaben.
+Trip.com-Buchungsnummern gehören in `notiz`, `code` ist der Airline-Code (PNR, 6 Zeichen).
 
 Ein Flug mit Umstieg = **ein Eintrag pro Teilstrecke** (gleicher `code`, Hinweis in `notiz`).
 Flüge werden über `nummer` + `d` mit vorhandenen zusammengeführt; Angaben, die der Nutzer in der App
