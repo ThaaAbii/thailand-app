@@ -35,7 +35,8 @@
       "prog": "Abflug FRA 20:10 (Demo-Flug DX100)",
       "tr": "Demo Airlines DX100\nZug zum Flughafen nehmen",
       "stay": "Im Flieger",
-      "note": "Beispiel: Koffer bis Bangkok durchchecken lassen"
+      "note": "Beispiel: Koffer bis Bangkok durchchecken lassen",
+      "via": "Beispielportal"
     },
     {
       "d": "2026-11-18",
@@ -215,35 +216,46 @@
       "ueber": "Demo Airlines",
       "storno": "nur Umbuchung",
       "stornoStatus": "crit",
-      "eur": 799
+      "eur": 799,
+      "kategorie": "Flug",
+      "zahlung": "gebucht"
     },
     {
       "leistung": "Musterhotel Sukhumvit (18.–20.11.)",
       "ueber": "Beispielportal",
       "storno": "frei bis 14.11. 23:59",
       "stornoStatus": "ok",
-      "eur": 60
+      "eur": 60,
+      "kategorie": "Hotel",
+      "zahlung": "gebucht",
+      "bis": "14.11.2026, 23:59 (Ortszeit)"
     },
     {
       "leistung": "Palmenbungalow Beispiel (20.–26.11.)",
       "ueber": "Beispielportal",
       "storno": "nicht erstattbar",
       "stornoStatus": "crit",
-      "eur": 210
+      "eur": 210,
+      "kategorie": "Hotel",
+      "zahlung": "gebucht"
     },
     {
       "leistung": "Tauchkurs + Zimmer Musterriff",
       "ueber": "vor Ort",
-      "storno": "Anzahlung geleistet",
-      "stornoStatus": "mut",
-      "eur": 350
+      "storno": "Anzahlung geleistet, Rest vor Ort",
+      "stornoStatus": "ok",
+      "eur": 350,
+      "kategorie": "Tauchen + Hotel",
+      "zahlung": "vor Ort"
     },
     {
       "leistung": "Hotel Bangkok letzte Nacht",
       "ueber": "",
       "storno": "noch offen",
       "stornoStatus": "warn",
-      "eur": null
+      "eur": null,
+      "kategorie": "Hotel",
+      "zahlung": "offen"
     }
   ],
   "fristen": [
@@ -367,8 +379,81 @@
     ]
   },
   "versicherung": {
-    "stand": "Demo: Beispielversicherung",
-    "notrufMDT": "+49 000 0000000 (Demo)"
+    "anbieter": "Demo-Versicherung",
+    "tarif": "Reiseschutz Beispiel",
+    "schein": "DEMO-0000000",
+    "beitrag": "99 €",
+    "summe": "2.000 €",
+    "selbstbehalt": "0 €",
+    "laufzeit": "17.11.–10.12.",
+    "abgeschlossen": "01.10.2026 (Beispiel)",
+    "notruf": "+49 000 0000000 (Demo)",
+    "service": "+49 000 1111111 (Demo)",
+    "schadenMail": "schaden@example.com",
+    "schadenOnline": "https://example.com/schaden",
+    "regeln": [
+      {
+        "titel": "Krank im Ausland",
+        "text": "Im Notfall zuerst Hilfe vor Ort (1669), dann den Versicherungs-Notruf anrufen. Originalbelege behalten."
+      },
+      {
+        "titel": "Diebstahl",
+        "text": "Sofort zur Touristenpolizei und eine Liste mit Kaufdatum und Preis machen lassen."
+      },
+      {
+        "titel": "Verlieren",
+        "text": "Verlieren und Liegenlassen sind nicht versichert."
+      }
+    ],
+    "leistungen": [
+      {
+        "titel": "Reise-Krankenversicherung",
+        "text": "Arzt, Krankenhaus, Medikamente, Rücktransport.",
+        "grenze": "ohne Höchstgrenze (Beispiel)"
+      },
+      {
+        "titel": "Gepäck",
+        "text": "Diebstahl, Raub, Brand, Transportunfall.",
+        "grenze": "bis 2.000 € je Fall (Beispiel)"
+      }
+    ],
+    "schadenfall": [
+      {
+        "titel": "Krankheit / Unfall",
+        "tun": "Arzt aufsuchen, bei Krankenhaus Notruf anrufen, Rechnungen sammeln.",
+        "brauchst": "Originalrechnungen mit Diagnose"
+      },
+      {
+        "titel": "Diebstahl",
+        "tun": "Sofort Polizei, Protokoll mitnehmen.",
+        "brauchst": "Polizeiprotokoll, Kaufbelege"
+      }
+    ],
+    "gepaeckGrenzen": [
+      {
+        "titel": "Handy",
+        "text": "inkl. Zubehör",
+        "grenze": "750 €"
+      },
+      {
+        "titel": "Kamera",
+        "text": "Foto/Film",
+        "grenze": "1.000 €"
+      }
+    ],
+    "gepaeck": [
+      {
+        "titel": "Am Körper, im Handgepäck",
+        "gedeckt": true,
+        "text": "Persönlicher Gewahrsam"
+      },
+      {
+        "titel": "Strand oder Boot unbeaufsichtigt",
+        "gedeckt": false,
+        "text": "Kein Gewahrsam"
+      }
+    ],
+    "stand": "Demo: erfundene Beispielversicherung"
   },
   "notfall": {
     "touristenpolizei": "1155",

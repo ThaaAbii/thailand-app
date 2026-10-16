@@ -1,12 +1,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { renderHeute } from '../app/js/heute.js';
-import { seiteReise, seiteTag } from '../app/js/reise.js';
+import { seitePlan } from '../app/js/plan.js';
+import { seiteTag } from '../app/js/reise.js';
+import { seiteBuchungsBlatt, kostenSummen } from '../app/js/buchungen.js';
+import { seiteVersicherung } from '../app/js/versicherung.js';
 import { seiteAufgaben } from '../app/js/aufgaben.js';
 import { seiteAusgaben } from '../app/js/ausgaben.js';
 import { seitePackliste } from '../app/js/listen.js';
-import { seiteMehr, seiteBuchungen, seiteTipps } from '../app/js/mehr.js';
+import { seiteMehr, seiteTipps } from '../app/js/mehr.js';
 import { seiteIdeen, ideenFuerOrt } from '../app/js/ideen.js';
 import { seiteTagebuch } from '../app/js/tagebuch.js';
 import { seiteThai } from '../app/js/thai.js';
@@ -45,10 +47,11 @@ function pruefe(seite, name) {
 
 for (const [phase, jetzt] of Object.entries(ZEITEN)) {
   test(`Alle Seiten rendern (${phase})`, () => {
-    pruefe(renderHeute(demo, jetzt, eigene), 'heute');
-    pruefe(renderHeute(demo, jetzt, {}), 'heute leer');
-    pruefe(seiteReise(demo, eigene, jetzt), 'reise');
-    for (const t of [[], ['gruppe', '0'], ['erledigt'], ['neu']]) pruefe(seiteAufgaben(demo, eigene, jetzt, t, { ausblenden: false }), `aufgaben/${t}`);
+    pruefe(seitePlan(demo, eigene, jetzt), 'plan');
+    pruefe(seitePlan(demo, {}, jetzt), 'plan leer');
+    pruefe(seitePlan(demo, eigene, jetzt, ['tabelle']), 'plan/tabelle');
+    for (const art of ['fluege', 'unterkuenfte', 'buchungen']) pruefe(seiteBuchungsBlatt(demo, eigene, jetzt, art), `buchungen/${art}`);
+    for (const t of [[], ['checkliste'], ['gruppe', '0'], ['erledigt'], ['neu']]) pruefe(seiteAufgaben(demo, eigene, jetzt, t, { ausblenden: false }), `aufgaben/${t}`);
     pruefe(seiteTag(demo, eigene, jetzt, '2026-11-21'), 'tag');
     for (const t of [[], ['neu'], ['bearbeiten', 'a1'], ['statistik'], ['liste'], ['einstellungen']]) {
       pruefe(seiteAusgaben(demo, eigene, jetzt, t, {}), `ausgaben/${t.join('/')}`);
@@ -67,7 +70,8 @@ test('Menü- und Unterseiten', () => {
   pruefe(seitePackliste(eigene, ['aufgabe']), 'packliste/aufgabe');
   pruefe(seitePackliste(eigene, ['teil', 'p1']), 'packliste/teil');
   pruefe(seitePackliste(eigene, ['neu', 'hand']), 'packliste/neu');
-  pruefe(seiteBuchungen(demo), 'buchungen');
+  for (const t of [[], ['leistungen'], ['schaden'], ['gepaeck']]) pruefe(seiteVersicherung(demo, t), `versicherung/${t}`);
+  pruefe(seiteVersicherung({ versicherung: { stand: 'alt', notrufMDT: '+49 1' } }, []), 'versicherung alt');
   pruefe(seiteTipps(demo, []), 'tipps');
   pruefe(seiteTipps(demo, ['0']), 'tipps/0');
   pruefe(seiteIdeen(demo, eigene, []), 'ideen');
@@ -78,7 +82,7 @@ test('Menü- und Unterseiten', () => {
 
 test('Unterseiten haben einen Zurück-Weg', () => {
   const j = ZEITEN.unterwegs;
-  assert.equal(seiteTag(demo, eigene, j, '2026-11-21').zurueck, '#reise');
+  assert.equal(seiteTag(demo, eigene, j, '2026-11-21').zurueck, '#plan');
   assert.equal(seiteAusgaben(demo, eigene, j, ['neu'], {}).zurueck, '#geld');
   assert.equal(seiteTagebuch(demo, eigene, j, ['2026-11-21']).zurueck, '#tagebuch');
   assert.equal(seiteIdeen(demo, eigene, ['samui']).zurueck, '#ideen');
@@ -93,4 +97,22 @@ test('Ausflugsideen: Status und eigene Ideen', () => {
   assert.ok(ideenFuerOrt(demo, {}, 'tao').some((i) => /Fun Dives/.test(i.titel)));
   assert.ok(ideenFuerOrt(demo, {}, 'aonang').some((i) => /Phi Phi/.test(i.titel)));
   assert.ok(ideenFuerOrt(demo, {}, 'aonang').some((i) => /4-Islands/.test(i.titel)));
+});
+
+test('Plan zeigt heutigen Tag und alle Tage', () => {
+  const html = seitePlan(demo, eigene, new Date('2026-11-22T05:00:00Z')).html;
+  assert.match(html, /data-heute/);
+  assert.equal((html.match(/class="tagz[ "]/g) ?? []).length, demo.tage.length);
+  const tab = seitePlan(demo, eigene, new Date('2026-11-22T05:00:00Z'), ['tabelle']).html;
+  assert.equal((tab.match(/<tr data-href/g) ?? []).length, demo.tage.length);
+  assert.match(tab, /ist-heute/);
+});
+
+test('Kosten: Summen nach bezahlt, vor Ort und Risiko', () => {
+  const s = kostenSummen([
+    { eur: 100, stornoStatus: 'crit', zahlung: 'gebucht' },
+    { eur: 50, stornoStatus: 'ok', zahlung: 'vor Ort' },
+    { leistung: 'offen' },
+  ]);
+  assert.deepEqual(s, { gesamt: 150, bezahlt: 100, vorOrt: 50, risiko: 100, offen: 1 });
 });

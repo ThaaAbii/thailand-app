@@ -2,12 +2,14 @@
 import { VERSION } from './version.js';
 import * as db from './db.js';
 import { pruefeReiseDaten, zusammenfassung, trenneImport, baueExport, backupDateiname } from './daten.js';
-import { renderHeute, aktualisiereTicker } from './heute.js';
+import { seitePlan, aktualisiereTicker } from './plan.js';
 import { seiteDaten } from './datenansicht.js';
-import { seiteReise, seiteTag } from './reise.js';
+import { seiteTag } from './reise.js';
 import { seiteAufgaben, aufgabenAktionen, aufgabenAenderung } from './aufgaben.js';
 import { seitePackliste, listenAktionen, listenAenderung } from './listen.js';
-import { seiteMehr, seiteBuchungen, seiteTipps } from './mehr.js';
+import { seiteMehr, seiteTipps } from './mehr.js';
+import { seiteBuchungsBlatt } from './buchungen.js';
+import { seiteVersicherung } from './versicherung.js';
 import { seiteAusgaben, ausgabenAktionen, ausgabenAenderung, ausgabenEingabe, aktualisiereUmrechnung } from './ausgaben.js';
 import { kursAusAntwort, kursVeraltet } from './ausgabenlogik.js';
 import { seiteKarte } from './karte.js';
@@ -18,7 +20,7 @@ import {
   seiteTagebuch, tagebuchAktionen, tagebuchAenderung, tagebuchEingabe, ladeFotos,
   fotosFuerBackup, fotosAusBackup,
 } from './tagebuch.js';
-import { seiteTagBearbeiten, seiteUnterkunft, seiteUnterkuenfte, seiteFluege, seiteFlug, detailAktionen, detailAenderung } from './details.js';
+import { seiteTagBearbeiten, seiteUnterkunft, seiteFlug, detailAktionen, detailAenderung } from './details.js';
 import { mitAnpassungen } from './anpassungen.js';
 import { e } from './ui.js';
 
@@ -31,7 +33,7 @@ const state = {
   reise: null,
   meta: null,
   eigene: {},
-  route: 'heute',
+  route: 'plan',
   teile: [],
   vorschau: null,
   ausgabenUi: {},
@@ -66,29 +68,29 @@ function jetzt() {
 }
 
 // ---------- Seiten ----------
-// Jede Seite liefert { titel, zurueck?, html }. nav = welcher Knopf unten leuchtet.
+// Jede Seite liefert { titel, zurueck?, grosstitel?, html }. nav = welcher Knopf unten leuchtet.
 
 // Reisedaten inkl. deiner Änderungen (bearbeitete Tage, Check-in-Fristen deiner Flüge)
 const r = () => mitAnpassungen(state.reise, state.eigene);
 const ROUTEN = {
-  heute: { nav: 'heute', seite: () => ({ titel: r()?.reise?.titel || 'Thailand', html: renderHeute(r(), jetzt(), state.eigene) }) },
-  reise: { nav: 'reise', seite: () => seiteReise(r(), state.eigene, jetzt()) },
+  plan: { nav: 'plan', seite: (t) => seitePlan(r(), state.eigene, jetzt(), t) },
   aufgaben: { nav: 'aufgaben', seite: (t) => seiteAufgaben(r(), state.eigene, jetzt(), t, { ausblenden: einstellung('ausblenden') === '1' }) },
   tag: {
-    nav: 'reise',
+    nav: 'plan',
     seite: (t) => (t[1] === 'bearbeiten'
       ? seiteTagBearbeiten(state.reise, r(), state.eigene, t[0])
       : seiteTag(r(), state.eigene, jetzt(), t[0])),
   },
-  unterkuenfte: { nav: 'reise', seite: () => seiteUnterkuenfte(r(), state.eigene) },
-  unterkunft: { nav: 'reise', seite: (t) => seiteUnterkunft(r(), state.eigene, t[0], t[1] === 'bearbeiten') },
-  fluege: { nav: 'reise', seite: () => seiteFluege(r(), state.eigene, jetzt()) },
-  flug: { nav: 'reise', seite: (t) => seiteFlug(r(), state.eigene, jetzt(), t[0], t[1]) },
+  fluege: { nav: 'buchungen', seite: () => seiteBuchungsBlatt(r(), state.eigene, jetzt(), 'fluege') },
+  unterkuenfte: { nav: 'buchungen', seite: () => seiteBuchungsBlatt(r(), state.eigene, jetzt(), 'unterkuenfte') },
+  buchungen: { nav: 'buchungen', seite: () => seiteBuchungsBlatt(r(), state.eigene, jetzt(), 'buchungen') },
+  unterkunft: { nav: 'buchungen', seite: (t) => seiteUnterkunft(r(), state.eigene, t[0], t[1] === 'bearbeiten') },
+  flug: { nav: 'buchungen', seite: (t) => seiteFlug(r(), state.eigene, jetzt(), t[0], t[1]) },
   geld: { nav: 'geld', seite: (t) => seiteAusgaben(r(), state.eigene, jetzt(), t, state.ausgabenUi) },
   tagebuch: { nav: 'mehr', seite: (t) => seiteTagebuch(r(), state.eigene, jetzt(), t) },
   mehr: { nav: 'mehr', seite: () => seiteMehr(r(), state.eigene) },
   packliste: { nav: 'mehr', seite: (t) => seitePackliste(state.eigene, t), ohneDaten: true },
-  buchungen: { nav: 'mehr', seite: () => seiteBuchungen(r()) },
+  versicherung: { nav: 'mehr', seite: (t) => seiteVersicherung(r(), t) },
   tipps: { nav: 'mehr', seite: (t) => seiteTipps(r(), t) },
   karte: { nav: 'mehr', seite: () => seiteKarte(r(), jetzt(), state.karteUi) },
   thai: { nav: 'mehr', seite: (t) => seiteThai({ hoeflich: einstellung('hoeflich'), allergie: Number(einstellung('allergie')) || 0 }, t), ohneDaten: true },
@@ -144,7 +146,7 @@ function banner() {
   if (testdatum()) {
     teile.push(`<a class="banner banner--test" href="#daten">🧪 Testdatum ${e(testdatum())} aktiv – antippen zum Ändern</a>`);
   }
-  if (state.route !== 'heute') return teile.join('');
+  if (state.route !== 'plan') return teile.join('');
   if (state.meta?.quelle !== 'import') {
     teile.push('<a class="banner" href="#daten">Du siehst Demo-Daten. <b>Eigene Reisedaten importieren ›</b></a>');
   } else if (backupFaellig()) {
@@ -156,9 +158,17 @@ function banner() {
   return teile.join('');
 }
 
+// Kopfzeile wie iOS: großer Titel scrollt weg, kleiner Titel + Milchglas erscheinen
+function aktualisiereScroll() {
+  const y = window.scrollY;
+  document.body.classList.toggle('gescrollt', y > 4);
+  document.body.classList.toggle('titel-sichtbar', y > 40);
+}
+window.addEventListener('scroll', aktualisiereScroll, { passive: true });
+
 let letzterSchluessel = '';
 function render() {
-  const route = ROUTEN[state.route] ?? ROUTEN.heute;
+  const route = ROUTEN[state.route] ?? ROUTEN.plan;
   for (const a of document.querySelectorAll('[data-nav]')) {
     const aktiv = a.dataset.nav === route.nav;
     a.classList.toggle('aktiv', aktiv);
@@ -174,17 +184,19 @@ function render() {
       seite = route.seite(state.teile);
     } catch (fehler) {
       console.error(fehler);
-      seite = { titel: 'Fehler', zurueck: '#heute', html: '<p class="leer">Diese Seite konnte nicht angezeigt werden.</p>' };
+      seite = { titel: 'Fehler', zurueck: '#plan', html: '<p class="leer">Diese Seite konnte nicht angezeigt werden.</p>' };
     }
   }
 
   kopfTitel.textContent = seite.titel ?? '';
   kopfZurueck.hidden = !seite.zurueck;
   kopfZurueck.dataset.ziel = seite.zurueck ?? '';
+  document.body.classList.toggle('hat-grosstitel', !!seite.grosstitel);
+  document.body.classList.toggle('ohne-grosstitel', !seite.grosstitel);
   document.title = seite.titel ? `${seite.titel} · Thailand` : 'Thailand';
   inhalt.innerHTML = banner() + seite.html;
 
-  if (state.route === 'heute') aktualisiereTicker(inhalt, jetzt());
+  if (state.route === 'plan') aktualisiereTicker(inhalt, jetzt());
   if (state.route === 'geld') aktualisiereUmrechnung(inhalt, state.reise, state.eigene);
   if (inhalt.querySelector('img[data-foto]')) ladeFotos(inhalt);
   letzterSchluessel = schluessel();
@@ -203,7 +215,7 @@ let aktuellerHash = '';
 let naechsterErsetzt = false;
 
 function zeigeAnsicht() {
-  const hash = location.hash || '#heute';
+  const hash = location.hash || '#plan';
   if (aktuellerHash) scrollPos.set(aktuellerHash, window.scrollY);
 
   const zurueckGegangen = !naechsterErsetzt && verlauf.length >= 2 && verlauf[verlauf.length - 2] === hash;
@@ -215,29 +227,29 @@ function zeigeAnsicht() {
 
   let [name, ...teile] = hash.slice(1).split('/').map(decodeURIComponent);
   // alte Adressen weiterleiten
-  if (name === 'plan') name = 'reise';
+  if (name === 'heute' || name === 'reise') name = 'plan';
   if (name === 'ausgaben') name = 'geld';
   if (name === 'fristen') { name = 'aufgaben'; teile = []; }
-  if (name === 'checkliste') { name = 'aufgaben'; teile = teile.length ? ['gruppe', ...teile] : []; }
-  state.route = name in ROUTEN ? name : 'heute';
+  if (name === 'checkliste') { name = 'aufgaben'; teile = teile.length ? ['gruppe', ...teile] : ['checkliste']; }
+  state.route = name in ROUTEN ? name : 'plan';
   state.teile = teile.filter(Boolean);
   if (state.route !== 'daten') state.vorschau = null;
 
   render();
   window.scrollTo(0, zurueckGegangen ? (scrollPos.get(hash) ?? 0) : 0);
+  aktualisiereScroll();
   if (!zurueckGegangen) {
     inhalt.classList.remove('einblenden');
     void inhalt.offsetWidth;
     inhalt.classList.add('einblenden');
   }
-  if (state.route === 'reise' && !zurueckGegangen) inhalt.querySelector('[data-heute]')?.scrollIntoView({ block: 'center' });
   if (state.route === 'geld' && state.teile[0] === 'neu') inhalt.querySelector('#ausgabe-betrag')?.focus();
 }
 
 /** Eine Ebene zurück – wie die Zurück-Taste, sonst direkt zur übergeordneten Seite. */
 function zurueck(ziel) {
   if (verlauf.length >= 2) history.back();
-  else ersetzeHash(ziel || '#heute');
+  else ersetzeHash(ziel || '#plan');
 }
 
 function ersetzeHash(ziel) {
@@ -342,7 +354,7 @@ function istInstalliert() {
 window.addEventListener('beforeinstallprompt', (ev) => {
   ev.preventDefault();
   state.installPrompt = ev;
-  if (state.route === 'heute' || state.route === 'daten') render();
+  if (state.route === 'plan' || state.route === 'daten') render();
 });
 
 window.addEventListener('appinstalled', () => {
@@ -439,7 +451,7 @@ async function importUebernehmen() {
     toast('Reisedaten importiert ✓');
   }
   await dauerhaftAnfragen();
-  location.hash = '#heute';
+  location.hash = '#plan';
 }
 
 async function demoZurueck() {
@@ -556,6 +568,12 @@ const APP_AKTIONEN = {
 const MODUL_AKTIONEN = [listenAktionen, ausgabenAktionen, ideenAktionen, tagebuchAktionen, detailAktionen, aufgabenAktionen];
 
 inhalt.addEventListener('click', (ev) => {
+  // Tabellenzeilen sind ganz antippbar
+  const zeile = ev.target.closest('tr[data-href]');
+  if (zeile) {
+    location.hash = zeile.dataset.href;
+    return;
+  }
   const ersetzen = ev.target.closest('a[data-ersetzen]');
   if (ersetzen) {
     ev.preventDefault();
@@ -626,12 +644,12 @@ window.addEventListener('online', () => {
 window.addEventListener('offline', onlineStatus);
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible') return;
-  if (state.route === 'heute') render();
+  if (state.route === 'plan') render();
   holeKurs();
 });
 
 setInterval(() => {
-  if (state.route !== 'heute' || document.hidden) return;
+  if (state.route !== 'plan' || document.hidden) return;
   if (schluessel() !== letzterSchluessel) render();
   else aktualisiereTicker(inhalt, jetzt());
 }, 1000);

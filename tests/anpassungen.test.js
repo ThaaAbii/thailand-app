@@ -8,7 +8,7 @@ import {
 import { TZ_DE, TZ_TH } from '../app/js/zeit.js';
 import { seiteTagBearbeiten, seiteUnterkunft, seiteUnterkuenfte, seiteFluege, seiteFlug } from '../app/js/details.js';
 import { seiteTag } from '../app/js/reise.js';
-import { renderHeute } from '../app/js/heute.js';
+import { seitePlan } from '../app/js/plan.js';
 
 const demo = JSON.parse(readFileSync(new URL('../app/demo-daten.json', import.meta.url)));
 // Fahrplan-Zeilen im Format der echten Daten
@@ -103,12 +103,12 @@ test('Bearbeiten-Seiten rendern', () => {
     seiteFlug(m, eigene, jetzt, 'neu', '2026-11-20'),
     seiteTag(m, eigene, jetzt, '2026-11-20'),
     seiteTag(m, eigene, jetzt, '2026-11-21'),
-    { html: renderHeute(m, new Date('2026-11-20T05:00:00Z'), eigene) },
+    seitePlan(m, eigene, new Date('2026-11-20T05:00:00Z')),
   ]) {
     assert.ok(!/undefined|NaN/.test(s.html), s.titel);
   }
   assert.match(seiteTag(m, eigene, jetzt, '2026-11-21').html, /Roller mieten/);
   assert.match(seiteTag(m, eigene, jetzt, '2026-11-21').html, /Zimmer 12/);
   assert.match(seiteTag(m, eigene, jetzt, '2026-11-20').html, /DA123/);
-  assert.match(renderHeute(m, new Date('2026-11-20T05:00:00Z'), eigene), /DA123/);
+  assert.match(seitePlan(m, eigene, new Date('2026-11-20T05:00:00Z')).html, /DA123/);
 });

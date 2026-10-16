@@ -1,7 +1,7 @@
 // Aufgaben: Fristen, Checkliste und Online-Check-ins in einer Liste – alles abhakbar.
 import { TZ_DE, parseZeit, restText, fristStufe, formatKurz, tageDiff, datumIn, zeitInZoneTag } from './zeit.js';
 import { e } from './ui.js';
-import { karte, abschnitt, held, leer, balken } from './bausteine.js';
+import { karte, abschnitt, held, leer, balken, reiter, grosstitel } from './bausteine.js';
 import { checklistenGruppen, neueId } from './listenlogik.js';
 
 const norm = (s) => String(s ?? '').toLowerCase().replace(/[^a-z0-9äöüß]+/g, ' ').trim();
@@ -84,7 +84,7 @@ const PUNKTFARBE = { rot: 'var(--rot)', orange: 'var(--orange)', gruen: 'var(--g
 export function aufgabeZeile(a, jetzt, tz = TZ_DE, mitNotiz = false) {
   const stufe = a.faellig ? fristStufe(a.faellig, jetzt, tz) : null;
   const termin = a.faellig
-    ? (a.faellig <= jetzt ? 'überfällig' : restText(a.faellig, jetzt, tz))
+    ? (a.faellig <= jetzt ? 'überfällig' : restText(a.faellig, jetzt, tz).replace(/^heute, noch /, 'in ').replace(/^noch /, ''))
     : '';
   const unter = [a.faellig ? formatKurz(a.faellig, tz) : '', mitNotiz || !a.faellig ? a.notiz : ''].filter(Boolean).join(' · ');
   return `
@@ -101,49 +101,81 @@ export function aufgabeZeile(a, jetzt, tz = TZ_DE, mitNotiz = false) {
 
 // ---------- Seiten ----------
 
-export function seiteAufgaben(daten, eigene, jetzt, teile, { ausblenden }) {
-  const aufgaben = alleAufgaben(daten, eigene);
-  const [unter, param] = teile;
-  if (unter === 'gruppe') return gruppenSeite(aufgaben, param, jetzt, ausblenden);
-  if (unter === 'erledigt') return erledigtSeite(aufgaben, jetzt);
-  if (unter === 'neu') return neuSeite(aufgaben, param);
+function aufgabenReiter(z, aktiv) {
+  return reiter([
+    { href: '#aufgaben', label: 'Termine' },
+    { href: '#aufgaben/checkliste', label: 'Checkliste' },
+    { href: '#aufgaben/erledigt', label: 'Erledigt', zahl: z.erledigt || '' },
+  ], aktiv);
+}
 
-  const z = zaehle(aufgaben);
-  const termine = anstehend(aufgaben, jetzt);
-  const heute = datumIn(jetzt, TZ_DE);
-  const ueberfaellig = termine.filter((a) => a.faellig <= jetzt);
-  const bald = termine.filter((a) => a.faellig > jetzt && tageDiff(heute, datumIn(a.faellig, TZ_DE)) <= 7);
-  const spaeter = termine.filter((a) => a.faellig > jetzt && tageDiff(heute, datumIn(a.faellig, TZ_DE)) > 7);
+function kopf(z, aktiv) {
+  return `
+    ${grosstitel('Aufgaben', `${z.offen} offen · ${z.erledigt} von ${z.gesamt} erledigt`)}
+    ${balken(z.prozent)}
+    ${aufgabenReiter(z, aktiv)}`;
+}
 
+function gruppieren(aufgaben) {
   const gruppen = [];
   for (const a of aufgaben.filter((x) => x.art === 'check')) {
     let g = gruppen.find((x) => x.name === a.gruppe);
     if (!g) gruppen.push(g = { name: a.gruppe, liste: [] });
     g.liste.push(a);
   }
+  return gruppen;
+}
+
+export function seiteAufgaben(daten, eigene, jetzt, teile, { ausblenden }) {
+  const aufgaben = alleAufgaben(daten, eigene);
+  const [unter, param] = teile;
+  if (unter === 'gruppe') return gruppenSeite(aufgaben, param, jetzt, ausblenden);
+  if (unter === 'neu') return neuSeite(aufgaben, param);
+  const z = zaehle(aufgaben);
+  if (unter === 'erledigt') return erledigtSeite(aufgaben, jetzt, z);
+  if (unter === 'checkliste') return checklistenSeite(aufgaben, jetzt, z, ausblenden);
+
+  const termine = anstehend(aufgaben, jetzt);
+  const heute = datumIn(jetzt, TZ_DE);
+  const ueberfaellig = termine.filter((a) => a.faellig <= jetzt);
+  const bald = termine.filter((a) => a.faellig > jetzt && tageDiff(heute, datumIn(a.faellig, TZ_DE)) <= 7);
+  const spaeter = termine.filter((a) => a.faellig > jetzt && tageDiff(heute, datumIn(a.faellig, TZ_DE)) > 7);
+  const ohneDatum = aufgaben.filter((a) => a.art === 'check' && !a.erledigt && !a.faellig).length;
 
   return {
     titel: 'Aufgaben',
+    grosstitel: true,
     html: `
-      ${held({ label: 'Aufgaben', titel: `${z.offen} offen`, unter: `${z.erledigt} von ${z.gesamt} erledigt` })}
-      ${balken(z.prozent)}
+      ${kopf(z, '#aufgaben')}
       ${ueberfaellig.length ? abschnitt('Überfällig', karte(ueberfaellig.map((a) => aufgabeZeile(a, jetzt)).join(''))) : ''}
       ${bald.length ? abschnitt('Nächste 7 Tage', karte(bald.map((a) => aufgabeZeile(a, jetzt)).join(''))) : ''}
       ${spaeter.length ? abschnitt('Später', karte(spaeter.map((a) => aufgabeZeile(a, jetzt)).join(''))) : ''}
       ${!termine.length ? abschnitt('Termine', karte(leer('Keine offenen Termine.'))) : ''}
-      ${abschnitt('Checkliste', karte(gruppen.map((g, i) => {
+      ${ohneDatum ? `<a class="knopf knopf--breit" href="#aufgaben/checkliste" data-ersetzen>${ohneDatum} weitere Punkte ohne Datum in der Checkliste</a>` : ''}
+      <a class="knopf knopf--haupt knopf--breit" href="#aufgaben/neu">Neue Aufgabe</a>
+      <p class="legende"><span class="legende__punkt legende--rot">≤ 7 Tage</span><span class="legende__punkt legende--orange">≤ 21 Tage</span><span class="legende__punkt legende--gruen">später</span></p>`,
+  };
+}
+
+function checklistenSeite(aufgaben, jetzt, z, ausblenden) {
+  const gruppen = gruppieren(aufgaben);
+  return {
+    titel: 'Aufgaben',
+    grosstitel: true,
+    html: `
+      ${kopf(z, '#aufgaben/checkliste')}
+      ${gruppen.map((g) => {
         const fertig = g.liste.filter((a) => a.erledigt).length;
-        return `
-          <a class="zeile" href="#aufgaben/gruppe/${i}">
-            <span class="zeile__text"><span class="zeile__titel">${e(g.name)}</span></span>
-            <span class="zeile__wert${fertig === g.liste.length ? ' text-gruen' : ''}">${fertig === g.liste.length ? 'fertig' : `${fertig} / ${g.liste.length}`}</span>
-            <span class="zeile__pfeil" aria-hidden="true"></span>
-          </a>`;
-      }).join('') || leer('Keine Checkliste.')))}
-      <div class="knopfreihe">
-        <a class="knopf" href="#aufgaben/neu">Neue Aufgabe</a>
-        <a class="knopf knopf--leise" href="#aufgaben/erledigt">Erledigt (${z.erledigt})</a>
-      </div>`,
+        const sichtbar = ausblenden ? g.liste.filter((a) => !a.erledigt) : g.liste;
+        return abschnitt(g.name, karte(
+          (sichtbar.map((a) => aufgabeZeile(a, jetzt, TZ_DE, true)).join('') || '<p class="leer">Alles erledigt ✓</p>')
+          + `<a class="zeile zeile--fuss" href="#aufgaben/neu/${encodeURIComponent(g.name)}"><span class="zeile__text"><span class="zeile__titel">Punkt hinzufügen</span></span></a>`,
+        ), ` <span class="label__wert${fertig === g.liste.length ? ' text-gruen' : ''}">${fertig}/${g.liste.length}</span>`);
+      }).join('') || leer('Keine Checkliste.')}
+      <label class="schalter">
+        <span>Erledigte ausblenden</span>
+        <input type="checkbox" data-einstellung="ausblenden" ${ausblenden ? 'checked' : ''}>
+      </label>`,
   };
 }
 
@@ -161,7 +193,7 @@ function gruppenSeite(aufgaben, param, jetzt, ausblenden) {
   const fertig = liste.filter((a) => a.erledigt).length;
   return {
     titel: name,
-    zurueck: '#aufgaben',
+    zurueck: '#aufgaben/checkliste',
     html: `
       ${held({ label: `${fertig} von ${liste.length} erledigt`, titel: name })}
       ${balken(liste.length ? (fertig / liste.length) * 100 : 0)}
@@ -174,13 +206,13 @@ function gruppenSeite(aufgaben, param, jetzt, ausblenden) {
   };
 }
 
-function erledigtSeite(aufgaben, jetzt) {
+function erledigtSeite(aufgaben, jetzt, z) {
   const liste = aufgaben.filter((a) => a.erledigt);
   return {
-    titel: 'Erledigt',
-    zurueck: '#aufgaben',
+    titel: 'Aufgaben',
+    grosstitel: true,
     html: `
-      ${held({ label: 'Erledigt', titel: `${liste.length} ${liste.length === 1 ? 'Aufgabe' : 'Aufgaben'}` })}
+      ${kopf(z, '#aufgaben/erledigt')}
       ${karte(liste.map((a) => aufgabeZeile(a, jetzt)).join('') || leer('Noch nichts erledigt.'))}`,
   };
 }
