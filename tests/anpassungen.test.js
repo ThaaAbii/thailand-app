@@ -112,3 +112,17 @@ test('Bearbeiten-Seiten rendern', () => {
   assert.match(seiteTag(m, eigene, jetzt, '2026-11-20').html, /DA123/);
   assert.match(seitePlan(m, eigene, new Date('2026-11-20T05:00:00Z')).html, /DA123/);
 });
+
+test('Flüge aus den Reisedaten übernehmen, eigene Angaben bleiben', async () => {
+  const { fluegeAusReisedaten, gueltigeFluege } = await import('../app/js/anpassungen.js');
+  const reise = { fluege: [{ d: '2026-11-20', nummer: 'PG 191', airline: 'Bangkok Airways', von: 'BKK', nach: 'USM', abflug: '19:15', ankunft: '20:25', gepaeck: '20 kg' }] };
+  const eigene = { fluege: [{ id: 'x', d: '2026-11-20', nummer: 'PG191', sitz: '12A', gepaeck: '15 kg' }] };
+  assert.equal(fluegeAusReisedaten(reise, eigene), true);
+  assert.equal(eigene.fluege.length, 1);
+  assert.equal(eigene.fluege[0].gepaeck, '15 kg');
+  assert.equal(eigene.fluege[0].ankunft, '20:25');
+  assert.equal(fluegeAusReisedaten(reise, eigene), false);
+  const leer = {};
+  fluegeAusReisedaten(reise, leer);
+  assert.equal(gueltigeFluege(leer)[0].nummer, 'PG 191');
+});
