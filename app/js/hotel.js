@@ -20,11 +20,24 @@ export function hotelBilder(info) {
   return Array.isArray(info?.bilder) ? info.bilder.filter(istBild) : [];
 }
 
+/** Kurze, stabile Kennung eines Bildes (damit „gelöscht“ auch nach erneutem Import gilt). */
+export function bildKennung(src) {
+  let h = 5381;
+  for (let i = 0; i < src.length; i += 1) h = ((h * 33) ^ src.charCodeAt(i)) >>> 0;
+  return `${src.length.toString(36)}-${h.toString(36)}`;
+}
+
+/** Bilder aus den Reisedaten ohne die, die du gelöscht (ausgeblendet) hast. */
+export function sichtbareHotelBilder(daten, eigene, name) {
+  const weg = new Set(Array.isArray(eigene?.hotelBilderWeg?.[name]) ? eigene.hotelBilderWeg[name] : []);
+  return hotelBilder(hotelInfo(daten, name)).filter((b) => !weg.has(bildKennung(b)));
+}
+
 /** Titelbild: eigenes Foto zuerst, sonst Bild aus den Reisedaten. → { id } | { src } | null */
 export function titelBild(daten, eigene, name) {
   const eigeneFotos = eigene?.hotelFotos?.[name];
   if (Array.isArray(eigeneFotos) && typeof eigeneFotos[0] === 'string') return { id: eigeneFotos[0] };
-  const b = hotelBilder(hotelInfo(daten, name))[0];
+  const b = sichtbareHotelBilder(daten, eigene, name)[0];
   return b ? { src: b } : null;
 }
 
