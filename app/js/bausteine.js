@@ -1,4 +1,4 @@
-// Bausteine des Designs: weiße Karten mit feinen Zeilen, Abschnitte, Kacheln, Fortschritt.
+// Bausteine des Designs: weiße Gruppen mit feinen Linien, Reiter, Abschnitte, Kacheln, Fortschritt.
 import { TZ_DE, TZ_TH, formatKurz, restText, fristStufe } from './zeit.js';
 import { e, zeilen } from './ui.js';
 import { ikon } from './ikonen.js';
@@ -11,7 +11,8 @@ export function karte(inhalt, klasse = '') {
 
 /**
  * Karte aus Zeilen.
- * Zeile: { href?, aktion?, daten?, icon?, punkt?, titel, unter?, wert?, wertKlasse?, pfeil?, extern?, klasse? }
+ * Zeile: { href?, aktion?, daten?, icon?, farbe?, punkt?, titel, unter?, wert?, wertKlasse?, pfeil?, extern?, klasse? }
+ * farbe: Name einer Symbol-Farbe (rot, orange, gelb, gruen, tuerkis, blau, indigo, lila, pink, braun, grau) → farbige Kachel wie in den iOS-Einstellungen
  */
 export function liste(zeilenListe, klasse = '') {
   const z = zeilenListe.filter(Boolean);
@@ -34,7 +35,7 @@ export function listenZeile(z) {
   return `
     <${tag} class="zeile ${z.klasse ?? ''}" ${attrs}>
       ${z.punkt ? `<span class="zeile__punkt" style="--ort:${z.punkt}"></span>` : ''}
-      ${z.icon && ikon(z.icon) ? `<span class="zeile__icon">${ikon(z.icon)}</span>` : ''}
+      ${z.icon && ikon(z.icon) ? `<span class="zeile__icon${z.farbe ? ' zeile__icon--farbe' : ''}"${z.farbe ? ` style="--ic:var(--i-${e(z.farbe)})"` : ''}>${ikon(z.icon)}</span>` : ''}
       <span class="zeile__text">
         <span class="zeile__titel">${z.titelHtml ?? e(z.titel)}</span>
         ${z.unter || z.unterHtml ? `<span class="zeile__unter">${z.unterHtml ?? e(z.unter)}</span>` : ''}
@@ -42,6 +43,20 @@ export function listenZeile(z) {
       ${z.wert != null && z.wert !== '' || z.wertHtml ? `<span class="zeile__wert ${z.wertKlasse ?? ''}">${z.wertHtml ?? e(z.wert)}</span>` : ''}
       ${pfeil}
     </${tag}>`;
+}
+
+/**
+ * Reiter wie Blätter einer Tabelle: [{ href, label, zahl? }], aktiv = href des aktiven Reiters.
+ * Wechsel ersetzt den Verlaufseintrag (data-ersetzen), damit „Zurück“ nicht durch alle Reiter springt.
+ */
+export function reiter(liste0, aktiv) {
+  return `<nav class="reiter" aria-label="Ansicht">${liste0.map((r) => `
+    <a href="${e(r.href)}" data-ersetzen${r.href === aktiv ? ' class="aktiv" aria-current="page"' : ''}>${e(r.label)}${r.zahl ? `<small>${e(r.zahl)}</small>` : ''}</a>`).join('')}</nav>`;
+}
+
+/** Großer Seitentitel oben (wie iOS); verschwindet beim Scrollen in die Kopfzeile. */
+export function grosstitel(titel, unter = '') {
+  return `<h1 class="grosstitel">${e(titel)}${unter ? `<small>${e(unter)}</small>` : ''}</h1>`;
 }
 
 /** Abschnitt mit kleiner Überschrift über einer Karte. */

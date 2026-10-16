@@ -64,13 +64,14 @@ export function seiteNotfall(daten, jetzt) {
       </div>
     </section>
 
-    ${versNummern.length || v.stand ? `
+    ${versNummern.length || v.stand || v.schein ? `
     <section class="abschnitt">
       <h2 class="label">Reiseversicherung</h2>
       <div class="notrufe">
-        ${versNummern.map(([k, val]) => nummer('🩺', /mdt/i.test(k) ? 'Versicherungs-Notruf (MDT)' : 'Versicherungs-Notruf', 'Bei Krankenhaus-Aufenthalt sofort anrufen', val)).join('')}
+        ${versNummern.map(([k, val]) => nummer('🩺', /mdt/i.test(k) ? 'Versicherungs-Notruf (MDT)' : `Versicherungs-Notruf${v.anbieter ? ` (${v.anbieter})` : ''}`, 'Bei Krankenhaus oder größerer Behandlung so früh wie möglich anrufen', val)).join('')}
       </div>
-      ${v.stand ? `<p class="leise klein">${e(v.stand)}</p>` : ''}
+      ${v.schein ? `<p class="leise klein">${e([v.anbieter, v.tarif].filter(Boolean).join(' '))} · Schein-Nr. ${e(v.schein)}</p>` : v.stand ? `<p class="leise klein">${e(v.stand)}</p>` : ''}
+      <a class="mehrlink" href="#versicherung">Alles zur Versicherung ›</a>
     </section>` : ''}
 
     <section class="abschnitt">

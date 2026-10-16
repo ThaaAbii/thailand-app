@@ -25,7 +25,7 @@ function feld(name, label, wert, { mehrzeilig = false, typ = 'text', platzhalter
 export function seiteTagBearbeiten(original, aktuell, eigene, d) {
   const t = aktuell.tage.find((x) => x.d === d);
   const o = (original?.tage ?? []).find((x) => x.d === d);
-  if (!t) return { titel: 'Bearbeiten', zurueck: '#reise', html: leer('Diesen Tag gibt es nicht.') };
+  if (!t) return { titel: 'Bearbeiten', zurueck: '#plan', html: leer('Diesen Tag gibt es nicht.') };
   const geaendert = !!eigene?.tagAenderungen?.[d];
   return {
     titel: `${formatTag(d)} bearbeiten`,

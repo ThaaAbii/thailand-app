@@ -1,10 +1,10 @@
-// Reise: Stationen mit ihren Tagen, und eine Seite pro Tag (Ablauf, Flug, Unterkunft, Tagebuch).
+// Reise: Stationen gliedern und eine Seite pro Tag (Ablauf, Flug, Unterkunft, Tagebuch).
 import { reisePhase, tagLabel, formatTag } from './zeit.js';
 import { e, ortInfo, zeilen } from './ui.js';
-import { liste, karte, abschnitt, held, leer, kacheln } from './bausteine.js';
+import { liste, karte, abschnitt, held, leer } from './bausteine.js';
 import { gueltigeAusgaben, inThb, formatThb } from './ausgabenlogik.js';
 import { eintragVon } from './tagebuch.js';
-import { fluegeAm, unterkunftDetails, gueltigeFluege, alleUnterkuenfte } from './anpassungen.js';
+import { fluegeAm, unterkunftDetails } from './anpassungen.js';
 import { flugZeile, unterkunftZeilen } from './details.js';
 
 /** Tage nach Station gliedern; Reisetage hängen an der vorherigen Station. */
@@ -22,64 +22,11 @@ export function stationen(tage) {
   return liste0;
 }
 
-function tagZeile(t, ph, daten) {
-  const heute = t.d === ph.datum;
-  const [wt, dm] = formatTag(t.d).split(', ');
-  const ort = ortInfo(daten, t.p);
-  const reisetag = !t.p || t.p === 'travel';
-  return `
-    <a class="zeile tagzeile${heute ? ' tagzeile--heute' : ''}${t.d < ph.datum ? ' tagzeile--vorbei' : ''}" href="#tag/${t.d}" ${heute ? 'data-heute' : ''}>
-      <span class="tagzeile__datum"><small>${e(wt.replace('.', ''))}</small><b>${e(dm.split('.')[0])}</b></span>
-      <span class="zeile__text">
-        <span class="zeile__titel">${e(t.t || ort.name)}</span>
-        <span class="zeile__unter">${heute ? '<b class="text-akzent">Heute</b> · ' : ''}${e(tagLabel(ph, t.d).label)}${reisetag && !/Abreise|Heimreise/.test(tagLabel(ph, t.d).label) ? ' · Reisetag' : ''}</span>
-      </span>
-      <span class="zeile__pfeil" aria-hidden="true"></span>
-    </a>`;
-}
-
-export function seiteReise(daten, eigene, jetzt) {
-  const ph = reisePhase(daten, jetzt);
-  if (!ph.tage.length) return { titel: 'Reise', html: leer('Kein Fahrplan vorhanden.') };
-  const erster = ph.tage[0].d;
-  const letzter = ph.tage[ph.tage.length - 1].d;
-  const fluege = gueltigeFluege(eigene).length;
-  const hotels = alleUnterkuenfte(daten).length;
-
-  const html = stationen(ph.tage).map((s) => {
-    const ort = ortInfo(daten, s.p ?? 'travel');
-    const hotel = s.tage.map((t) => t.stay).find((x) => x && !/flieger/i.test(x));
-    const von = s.tage[0].d;
-    const bis = s.tage[s.tage.length - 1].d;
-    return `
-      <section class="etappe" style="--ort:${ort.farbe}">
-        <header class="etappe__kopf">
-          <span class="etappe__name"><span class="punkt"></span>${e(s.p ? ort.name : 'Unterwegs')}</span>
-          <span class="etappe__zeit">${e(formatTag(von).split(', ')[1])}${bis !== von ? ` – ${e(formatTag(bis).split(', ')[1])}` : ''}</span>
-        </header>
-        ${hotel ? `<p class="etappe__hotel">${e(hotel)}</p>` : ''}
-        ${karte(s.tage.map((t) => tagZeile(t, ph, daten)).join(''))}
-      </section>`;
-  }).join('');
-
-  return {
-    titel: 'Reise',
-    html: `
-      ${held({ label: `${ph.tage.length} Tage · ${formatTag(erster).split(', ')[1]} – ${formatTag(letzter).split(', ')[1]}`, titel: daten?.reise?.titel || 'Reise' })}
-      ${kacheln([
-        { href: '#fluege', zahl: fluege || '–', label: fluege === 1 ? 'Flug' : 'Flüge' },
-        { href: '#unterkuenfte', zahl: hotels, label: hotels === 1 ? 'Unterkunft' : 'Unterkünfte' },
-      ])}
-      ${html}
-      ${abschnitt('', liste([{ href: '#karte', icon: '', titel: 'Route auf der Karte' }]))}`,
-  };
-}
-
 export function seiteTag(daten, eigene, jetzt, d) {
   const ph = reisePhase(daten, jetzt);
   const i = ph.tage.findIndex((t) => t.d === d);
   const t = ph.tage[i];
-  if (!t) return { titel: 'Tag', zurueck: '#reise', html: leer('Diesen Tag gibt es im Fahrplan nicht.') };
+  if (!t) return { titel: 'Tag', zurueck: '#plan', html: leer('Diesen Tag gibt es im Fahrplan nicht.') };
   const ort = ortInfo(daten, t.p);
   const stay = t.stay && !/flieger/i.test(t.stay) ? t.stay : null;
   const ausgaben = gueltigeAusgaben(eigene).filter((a) => a.d === d);
@@ -97,6 +44,7 @@ export function seiteTag(daten, eigene, jetzt, d) {
     t.prog ? `<div class="info"><h3 class="info__titel">Programm</h3><p>${zeilen(t.prog).map(e).join('<br>')}</p></div>` : '',
     schritte.length ? `<div class="info"><h3 class="info__titel">Transport</h3><ul class="schritte">${schritte.map((x) => `<li>${e(x)}</li>`).join('')}</ul></div>` : '',
     ci.length ? `<div class="info"><h3 class="info__titel">Check-in / Check-out</h3><ul class="schritte schritte--leise">${ci.map((x) => `<li>${e(x)}</li>`).join('')}</ul></div>` : '',
+    t.via ? `<div class="info"><h3 class="info__titel">Gebucht über</h3><p>${e(t.via)}</p></div>` : '',
   ].join('');
 
   const tagebuchVorschau = tb && (tb.text?.trim() || tb.fotos?.length || tb.stimmung)
@@ -109,7 +57,7 @@ export function seiteTag(daten, eigene, jetzt, d) {
 
   return {
     titel: formatTag(d),
-    zurueck: '#reise',
+    zurueck: '#plan',
     html: `
       ${held({
         label: `${tagLabel(ph, d).label} · ${formatTag(d, true)}`,
@@ -127,10 +75,10 @@ export function seiteTag(daten, eigene, jetzt, d) {
       ${t.note ? `<p class="notiz">${zeilen(t.note).map(e).join('<br>')}</p>` : ''}
       ${tagebuchVorschau ? abschnitt('', karte(tagebuchVorschau)) : ''}
       ${abschnitt('', liste([
-        tagebuchVorschau ? null : { href: `#tagebuch/${d}`, titel: 'Tagebuch schreiben' },
-        { href: '#geld/liste', titel: 'Ausgaben an diesem Tag', wert: thb ? formatThb(thb) : '–' },
-        { href: `#flug/neu/${d}`, titel: 'Flug hinzufügen' },
-        { href: `#tag/${d}/bearbeiten`, titel: 'Tag bearbeiten', unter: 'Transport, Programm, Notiz … ändern' },
+        tagebuchVorschau ? null : { href: `#tagebuch/${d}`, icon: 'buch', farbe: 'lila', titel: 'Tagebuch schreiben' },
+        { href: '#geld/liste', icon: 'geld', farbe: 'gruen', titel: 'Ausgaben an diesem Tag', wert: thb ? formatThb(thb) : '–' },
+        { href: `#flug/neu/${d}`, icon: 'flug', farbe: 'indigo', titel: 'Flug hinzufügen' },
+        { href: `#tag/${d}/bearbeiten`, icon: 'notiz', farbe: 'grau', titel: 'Tag bearbeiten', unter: 'Transport, Programm, Notiz … ändern' },
       ]))}
       <nav class="blaettern">
         ${vor ? `<a class="knopf knopf--leise" href="#tag/${vor.d}" data-ersetzen>‹ ${e(formatTag(vor.d))}</a>` : '<span></span>'}

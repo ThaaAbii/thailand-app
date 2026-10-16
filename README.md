@@ -31,6 +31,10 @@ und sind im Backup-Export unter `_app.eigene` enthalten. Fotos liegen im Indexed
 - ✅ Neuaufbau (Okt. 2026): Navigation **Heute · Reise · Aufgaben · Geld · Mehr**; „Aufgaben“ vereint Fristen,
   Checkliste und Online-Check-ins (abhakbar, eigene Aufgaben mit Datum); „Reise“ gliedert die Tage nach Etappen.
   Design: weiß, Karten mit feinem Rand, Schrift Figtree (lokal, OFL-Lizenz in `app/fonts/`), Linien-Symbole statt Emojis
+- ✅ Neuer Ansatz (Okt. 2026): Navigation **Plan · Aufgaben · Buchungen · Geld · Mehr**, aufgebaut wie Blätter
+  einer Tabelle (Segment-Reiter). „Plan“ zeigt oben Heute und darunter alle Tage auf einen Blick – als Übersicht
+  (Unterwegs | Schlafen nebeneinander) oder als echte Tabelle. Buchungen: Flüge, Hotels, Kosten mit Storno-Risiko.
+  Eigene Versicherungsseite. Design im Apple-Stil: graue Fläche, weiße Gruppen, Schrift Inter (lokal, OFL-Lizenz).
 
 ## Aufbau
 

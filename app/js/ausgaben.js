@@ -1,7 +1,7 @@
 // Ausgaben: Startseite mit Tagesbudget, eigene Seiten für Eintragen, Übersicht, Liste, Einstellungen.
 import { reisePhase, thailandTage, formatTag, formatLang, TZ_DE } from './zeit.js';
 import { e, ortInfo } from './ui.js';
-import { liste, abschnitt, balken, leer } from './bausteine.js';
+import { liste, abschnitt, balken, leer, reiter, grosstitel } from './bausteine.js';
 import { neueId } from './listenlogik.js';
 import {
   kategorien, kategorieIcon, tagesbudgetEur, aktuellerKurs, parseBetrag, inEur, inThb,
@@ -16,6 +16,16 @@ export function standardDatum(daten, jetzt) {
 
 function ortFuer(daten, d) {
   return (daten?.tage ?? []).find((t) => t.d === d)?.p ?? '';
+}
+
+const BLAETTER = [
+  { href: '#geld', label: 'Heute' },
+  { href: '#geld/liste', label: 'Einträge' },
+  { href: '#geld/statistik', label: 'Statistik' },
+];
+
+function kopf(aktiv) {
+  return `${grosstitel('Geld')}${reiter(BLAETTER, aktiv)}`;
 }
 
 function ausgabeZeile(a) {
@@ -60,10 +70,12 @@ function startSeite(daten, eigene, jetzt) {
 
   return {
     titel: 'Geld',
+    grosstitel: true,
     html: `
-      <section class="held">
+      ${kopf('#geld')}
+      <section class="geldkarte">
         <p class="held__label">Heute · ${e(formatTag(datum))}</p>
-        <h1 class="held__zahl">${formatThb(thb)}</h1>
+        <p class="held__zahl">${formatThb(thb)}</p>
         <p class="held__unter">${formatEur(eur)} von ${formatEur(budget)} · <span class="text-${status}">${STATUS_TEXT[status].text}</span></p>
         ${balken((eur / budget) * 100, status)}
         <p class="leise klein">${rest >= 0 ? `Noch ${formatThb(rest * kurs.wert)} frei` : `${formatThb(-rest * kurs.wert)} drüber`}</p>
@@ -71,9 +83,8 @@ function startSeite(daten, eigene, jetzt) {
       <a class="knopf knopf--haupt knopf--breit knopf--gross" href="#geld/neu">Ausgabe eintragen</a>
       ${zuletzt.length ? abschnitt('Zuletzt', liste(zuletzt.map(ausgabeZeile))) : ''}
       ${abschnitt('', liste([
-        { href: '#geld/statistik', icon: '📊', titel: 'Übersicht & Diagramme', wert: alle.length ? `Ø ${formatEur(ue.durchschnitt)}` : '' },
-        { href: '#geld/liste', icon: '🧾', titel: 'Alle Einträge', wert: alle.length ? `${alle.length}` : '' },
-        { href: '#geld/einstellungen', icon: '⚙️', titel: 'Kurs & Budget', wert: `1 € = ${formatKurs(kurs.wert)} ฿` },
+        { href: '#geld/einstellungen', icon: 'einstellung', farbe: 'grau', titel: 'Kurs & Budget', wert: `1 € = ${formatKurs(kurs.wert)} ฿` },
+        alle.length ? { href: '#geld/statistik', icon: 'chart', farbe: 'blau', titel: 'Durchschnitt pro Tag', wert: formatEur(ue.durchschnitt), daten: { ersetzen: '' } } : null,
       ]))}`,
   };
 }
@@ -155,7 +166,7 @@ function statistikSeite(daten, eigene, jetzt) {
   const alle = gueltigeAusgaben(eigene);
   const budget = tagesbudgetEur(daten, eigene);
   const reiseTage = thailandTage(daten);
-  if (!alle.length) return { titel: 'Übersicht', zurueck: '#geld', html: leer('Noch keine Ausgaben eingetragen.') };
+  if (!alle.length) return { titel: 'Geld', grosstitel: true, html: kopf('#geld/statistik') + leer('Noch keine Ausgaben eingetragen.') };
   const ue = ueberblick(alle, reiseTage, budget, standardDatum(daten, jetzt));
   const proTag = summenNach(alle, (a) => a.d).sort((a, b) => b.key.localeCompare(a.key));
   const maxTag = Math.max(budget * 1.25, ...proTag.map((t) => t.eur));
@@ -163,12 +174,13 @@ function statistikSeite(daten, eigene, jetzt) {
   const proOrt = summenNach(alle, (a) => a.p || '');
   const st = STATUS_TEXT[ue.status];
   return {
-    titel: 'Übersicht',
-    zurueck: '#geld',
+    titel: 'Geld',
+    grosstitel: true,
     html: `
-      <section class="held">
+      ${kopf('#geld/statistik')}
+      <section class="geldkarte">
         <p class="held__label">Bisher ausgegeben</p>
-        <h1 class="held__zahl">${formatEur(ue.gesamtEur)}</h1>
+        <p class="held__zahl">${formatEur(ue.gesamtEur)}</p>
         <p class="held__unter">${formatThb(ue.gesamtThb)} · Ø ${formatEur(ue.durchschnitt)} pro Tag <span class="text-${ue.status}">· ${st.text}</span></p>
       </section>
       <div class="kennzahlen">
@@ -187,16 +199,16 @@ function statistikSeite(daten, eigene, jetzt) {
 
 function listenSeite(daten, eigene) {
   const alle = gueltigeAusgaben(eigene);
-  if (!alle.length) return { titel: 'Alle Einträge', zurueck: '#geld', html: leer('Noch keine Ausgaben eingetragen.') };
+  if (!alle.length) return { titel: 'Geld', grosstitel: true, html: kopf('#geld/liste') + leer('Noch keine Ausgaben eingetragen.') };
   const nachTag = new Map();
   for (const a of [...alle].sort((x, y) => (y.d + (y.zeit ?? '')).localeCompare(x.d + (x.zeit ?? '')))) {
     if (!nachTag.has(a.d)) nachTag.set(a.d, []);
     nachTag.get(a.d).push(a);
   }
   return {
-    titel: 'Alle Einträge',
-    zurueck: '#geld',
-    html: [...nachTag.entries()].map(([d, eintraege]) => {
+    titel: 'Geld',
+    grosstitel: true,
+    html: kopf('#geld/liste') + [...nachTag.entries()].map(([d, eintraege]) => {
       const summe = eintraege.reduce((s, a) => s + inThb(a), 0);
       const ort = ortInfo(daten, eintraege[0].p).name;
       return abschnitt(`${formatTag(d)}${ort ? ` · ${ort}` : ''}`, liste(eintraege.map(ausgabeZeile)), ` <span class="label__wert">${formatThb(summe)}</span>`);
