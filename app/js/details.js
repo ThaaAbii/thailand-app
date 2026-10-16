@@ -137,7 +137,7 @@ export function seiteUnterkunft(daten, eigene, name, bearbeiten) {
       ${galerie(daten, eigene, name)}
       ${held({ label: u ? `${formatTag(u.von)} – ${formatTag(u.bis)} · ${u.naechte} ${u.naechte === 1 ? 'Nacht' : 'Nächte'}` : '', titel: name, unterHtml: u ? `<span class="punkt" style="--ort:${ort.farbe}"></span>${e(ort.name)}` : '' })}
       ${hotelKopfzeile(info)}
-      ${abschnitt('', liste(unterkunftZeilen(name, { ...alles, checkin: info.checkin ? '' : alles.checkin, checkout: info.checkout ? '' : alles.checkout }, ort.name)))}
+      ${abschnitt('', liste(unterkunftZeilen(name, { ...alles, checkin: info.checkin ? '' : alles.checkin, checkout: info.checkout ? '' : alles.checkout, zimmer: info.zimmer ? '' : alles.zimmer }, ort.name)))}
       ${hotelAbschnitte({ ...info, checkin: alles.checkin, checkout: alles.checkout, zimmer: alles.zimmer })}
       ${abschnitt('', liste([
         { href: `#unterkunft/${encodeURIComponent(name)}/bearbeiten`, icon: 'notiz', farbe: 'blau', titel: hatDetails ? 'Details bearbeiten' : 'Zimmer, Adresse, Telefon ergänzen' },

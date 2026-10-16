@@ -928,3 +928,12 @@ details summary { cursor: pointer; color: var(--akzent); margin-top: 6px; }
 .preiszeile--summe { margin-top: 6px; padding-top: 12px; border-top: 0.5px solid var(--linie-2); font-weight: 700; }
 .preiszeile--summe b { font-size: 1.15rem; font-weight: 700; }
 .ikon--klein { width: 15px; height: 15px; vertical-align: -2px; }
+.zimmer__name { font-size: 1.1rem; font-weight: 700; letter-spacing: -0.015em; margin-bottom: 10px; }
+.zimmer__text { margin-top: 10px; font-size: 0.9rem; color: var(--leise); }
+.zahlarten { margin-top: 14px; align-items: center; }
+.zahlarten__label { width: 100%; margin: 0 6px 2px; font-size: 0.8rem; font-weight: 600; color: var(--leise); }
+.beschreibung summary { list-style: none; color: var(--text); margin-top: 0; padding-top: 14px; }
+.beschreibung summary::-webkit-details-marker { display: none; }
+.beschreibung summary span { color: var(--akzent); font-weight: 600; }
+.beschreibung[open] summary { display: none; }
+.beschreibung p { padding-top: 12px; color: var(--leise); font-size: 0.94rem; line-height: 1.55; }

@@ -22,7 +22,7 @@ import {
   fotosFuerBackup, fotosAusBackup,
 } from './tagebuch.js';
 import { seiteTagBearbeiten, seiteUnterkunft, seiteFlug, detailAktionen, detailAenderung } from './details.js';
-import { mitAnpassungen } from './anpassungen.js';
+import { mitAnpassungen, fluegeAusReisedaten } from './anpassungen.js';
 import { e } from './ui.js';
 
 const inhalt = document.getElementById('inhalt');
@@ -394,6 +394,7 @@ async function ladeDaten() {
     state.dbFehler = true;
   }
   if (state.reise && !state.meta) state.meta = { quelle: 'import' };
+  if (state.reise && fluegeAusReisedaten(state.reise, state.eigene)) db.schreibe('eigene', state.eigene).catch(() => {});
   if (!state.reise) {
     try {
       state.reise = await ladeDemo();
@@ -443,6 +444,7 @@ async function importUebernehmen() {
   state.meta = meta;
   if (eigene) state.eigene = eigene;
   state.vorschau = null;
+  if (fluegeAusReisedaten(reise, state.eigene)) await speichereEigene();
   if (fotos && Object.keys(fotos).length) {
     toast('Fotos werden wiederhergestellt …');
     const n = await fotosAusBackup(fotos);

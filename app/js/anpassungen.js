@@ -162,3 +162,36 @@ export function alleUnterkuenfte(reise) {
 }
 
 export { parseZeit };
+
+const FLUG_FELDER = ['d', 'nummer', 'airline', 'von', 'nach', 'abflug', 'ankunft', 'terminal', 'sitz', 'gepaeck', 'code', 'notiz', 'checkinStunden'];
+const flugSchluessel = (f) => `${String(f?.nummer ?? '').replace(/\s+/g, '').toUpperCase()}|${f?.d ?? ''}`;
+
+/**
+ * Flüge aus den Reisedaten (reise.fluege) in deine Flüge übernehmen.
+ * Neue Flüge werden angelegt; bei vorhandenen (gleiche Nummer + Datum) werden nur leere Felder ergänzt –
+ * deine eigenen Änderungen bleiben. Gibt true zurück, wenn sich etwas geändert hat.
+ */
+export function fluegeAusReisedaten(reise, eigene) {
+  const quelle = Array.isArray(reise?.fluege) ? reise.fluege.filter((f) => f && /^\d{4}-\d{2}-\d{2}$/.test(f.d ?? '')) : [];
+  if (!quelle.length) return false;
+  if (!Array.isArray(eigene.fluege)) eigene.fluege = [];
+  let geaendert = false;
+  for (const q of quelle) {
+    const vorhanden = eigene.fluege.find((f) => flugSchluessel(f) === flugSchluessel(q))
+      ?? eigene.fluege.find((f) => !f.nummer && f.d === q.d && f.von === q.von);
+    if (vorhanden) {
+      for (const k of FLUG_FELDER) {
+        if ((vorhanden[k] == null || vorhanden[k] === '') && q[k] != null && q[k] !== '') {
+          vorhanden[k] = q[k];
+          geaendert = true;
+        }
+      }
+    } else {
+      const neu = { id: `daten-${flugSchluessel(q).replace(/[^\w-]/g, '')}`, checkin: q.checkin === 'erledigt' ? 'erledigt' : 'offen', fotos: [] };
+      for (const k of FLUG_FELDER) if (q[k] != null && q[k] !== '') neu[k] = typeof q[k] === 'string' ? q[k].trim() : q[k];
+      eigene.fluege.push(neu);
+      geaendert = true;
+    }
+  }
+  return geaendert;
+}
