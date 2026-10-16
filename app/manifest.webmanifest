@@ -40,7 +40,7 @@
     {
       "name": "Ausgabe eintragen",
       "short_name": "Ausgabe",
-      "url": "./#ausgaben",
+      "url": "./#geld",
       "icons": [
         {
           "src": "icons/icon-192.png",

@@ -2,6 +2,7 @@
 import { reisePhase } from './zeit.js';
 import { e, ortInfo } from './ui.js';
 import { mapsLink } from './karte.js';
+import { ikon } from './ikonen.js';
 
 const BEKANNT = {
   touristenpolizei: { name: 'Touristenpolizei', info: 'Englischsprachig, rund um die Uhr', icon: '👮' },
@@ -26,13 +27,12 @@ function telHref(nummer) {
 function nummer(icon, name, info, num, gross = false) {
   return `
     <a class="notruf${gross ? ' notruf--gross' : ''}" href="${telHref(num)}">
-      <span class="notruf__icon" aria-hidden="true">${icon}</span>
       <span class="notruf__text">
         <b>${e(name)}</b>
         <span class="notruf__nummer">${e(num)}</span>
         ${info ? `<small>${e(info)}</small>` : ''}
       </span>
-      <span class="notruf__anruf" aria-hidden="true">📞</span>
+      <span class="notruf__anruf">${ikon('telefon')}</span>
     </a>`;
 }
 
@@ -79,7 +79,7 @@ export function seiteNotfall(daten, jetzt) {
         ${nummer('🇩🇪', 'Botschaft (Öffnungszeiten)', 'Pass verloren, Festnahme, schwere Notlage', BOTSCHAFT.telefon)}
         ${nummer('🌙', 'Notfall außerhalb der Öffnungszeiten', 'Bereitschaftsdienst, keine Visafragen', BOTSCHAFT.notfall)}
       </div>
-      <p class="klein">📍 ${e(BOTSCHAFT.adresse)}<br><a class="mehrlink" href="${mapsLink(`Deutsche Botschaft ${BOTSCHAFT.adresse}`)}" target="_blank" rel="noopener">In Google Maps öffnen ›</a></p>
+      <p class="klein">${e(BOTSCHAFT.adresse)}<br><a class="mehrlink" href="${mapsLink(`Deutsche Botschaft ${BOTSCHAFT.adresse}`)}" target="_blank" rel="noopener">In Google Maps öffnen ›</a></p>
       <p class="leise klein">Stand Oktober 2026 – vor der Abreise einmal auf auswaertiges-amt.de prüfen.</p>
     </section>
 

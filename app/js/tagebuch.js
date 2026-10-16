@@ -54,7 +54,7 @@ export function seiteTagebuch(daten, eigene, jetzt, teile) {
     titel: 'Tagebuch',
     html: `
       ${held({ titel: 'Reisetagebuch', unter: tage.length ? `${tage.length} ${tage.length === 1 ? 'Tag' : 'Tage'} · ${fotosGesamt} Fotos` : 'Halte jeden Tag fest – mit Stimmung, ein paar Sätzen und Fotos.' })}
-      <a class="knopf knopf--haupt knopf--breit" href="#tagebuch/${ph.datum}">${heuteHatEintrag ? '📖 Heutigen Eintrag öffnen' : '✏️ Heute schreiben'}</a>
+      <a class="knopf knopf--haupt knopf--breit" href="#tagebuch/${ph.datum}">${heuteHatEintrag ? 'Heutigen Eintrag öffnen' : 'Heute schreiben'}</a>
       ${tage.length ? `<ol class="timeline">${timeline}</ol>` : leer('Noch keine Einträge. Dein erster Eintrag erscheint hier als Timeline.')}
       <label class="feld feld--abstand"><span>Anderen Tag öffnen</span>
         <input type="date" class="eingabe" id="tagebuch-datum" value="${e(ph.datum)}">
@@ -98,7 +98,7 @@ function eintragSeite(daten, eigene, jetzt, d) {
           ${(x.fotos ?? []).map((id) => `<button class="foto" data-aktion="foto-zeigen" data-id="${e(id)}" aria-label="Foto ansehen"><img data-foto="${e(id)}" alt=""></button>`).join('')}
           <label class="foto foto--neu" aria-label="Fotos hinzufügen">
             <input type="file" id="foto-datei" accept="image/*" multiple hidden data-datum="${e(d)}">
-            <span>＋<small>Foto</small></span>
+            <span>+<small>Foto</small></span>
           </label>
         </div>
         <p class="leise klein">Fotos werden verkleinert und nur auf deinem Handy gespeichert. Im Backup (unter Mehr → Daten) sind sie enthalten.</p>
@@ -227,7 +227,7 @@ export const tagebuchAktionen = {
       <img src="${url}" alt="">
       <div class="fotoansicht__leiste">
         <button class="knopf" data-fa="zu">Schließen</button>
-        <button class="knopf knopf--gefahr" data-fa="weg">🗑️ Löschen</button>
+        <button class="knopf knopf--gefahr" data-fa="weg">Löschen</button>
       </div>`;
     const zu = () => {
       ov.remove();

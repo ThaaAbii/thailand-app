@@ -20,12 +20,12 @@ function ortFuer(daten, d) {
 
 function ausgabeZeile(a) {
   return {
-    href: `#ausgaben/bearbeiten/${a.id}`,
+    href: `#geld/bearbeiten/${a.id}`,
     icon: kategorieIcon(a.kat),
     titel: a.notiz || a.kat,
     unter: a.notiz ? a.kat : '',
     wertHtml: `${a.waehrung === 'EUR' ? formatEur(a.betrag) : formatThb(a.betrag)}<small>${a.waehrung === 'EUR' ? formatThb(inThb(a)) : formatEur(inEur(a))}</small>`,
-    wertKlasse: 'lz__wert--geld',
+    wertKlasse: 'zeile__wert--geld',
     pfeil: '',
   };
 }
@@ -35,7 +35,7 @@ export function seiteAusgaben(daten, eigene, jetzt, teile, ui) {
   if (unter === 'neu') return formularSeite(daten, eigene, jetzt, null, ui);
   if (unter === 'bearbeiten') {
     const a = gueltigeAusgaben(eigene).find((x) => x.id === param);
-    return a ? formularSeite(daten, eigene, jetzt, a, ui) : { titel: 'Ausgabe', zurueck: '#ausgaben', html: leer('Diese Ausgabe gibt es nicht mehr.') };
+    return a ? formularSeite(daten, eigene, jetzt, a, ui) : { titel: 'Ausgabe', zurueck: '#geld', html: leer('Diese Ausgabe gibt es nicht mehr.') };
   }
   if (unter === 'statistik') return statistikSeite(daten, eigene, jetzt);
   if (unter === 'liste') return listenSeite(daten, eigene);
@@ -59,21 +59,21 @@ function startSeite(daten, eigene, jetzt) {
   const zuletzt = [...alle].sort((x, y) => (y.d + (y.zeit ?? '')).localeCompare(x.d + (x.zeit ?? ''))).slice(0, 4);
 
   return {
-    titel: 'Ausgaben',
+    titel: 'Geld',
     html: `
       <section class="held">
         <p class="held__label">Heute · ${e(formatTag(datum))}</p>
         <h1 class="held__zahl">${formatThb(thb)}</h1>
-        <p class="held__unter">${formatEur(eur)} von ${formatEur(budget)} · <span class="text-${status}">${STATUS_TEXT[status].icon} ${STATUS_TEXT[status].text}</span></p>
+        <p class="held__unter">${formatEur(eur)} von ${formatEur(budget)} · <span class="text-${status}">${STATUS_TEXT[status].text}</span></p>
         ${balken((eur / budget) * 100, status)}
         <p class="leise klein">${rest >= 0 ? `Noch ${formatThb(rest * kurs.wert)} frei` : `${formatThb(-rest * kurs.wert)} drüber`}</p>
       </section>
-      <a class="knopf knopf--haupt knopf--breit knopf--gross" href="#ausgaben/neu">＋ Ausgabe eintragen</a>
+      <a class="knopf knopf--haupt knopf--breit knopf--gross" href="#geld/neu">Ausgabe eintragen</a>
       ${zuletzt.length ? abschnitt('Zuletzt', liste(zuletzt.map(ausgabeZeile))) : ''}
       ${abschnitt('', liste([
-        { href: '#ausgaben/statistik', icon: '📊', titel: 'Übersicht & Diagramme', wert: alle.length ? `Ø ${formatEur(ue.durchschnitt)}` : '' },
-        { href: '#ausgaben/liste', icon: '🧾', titel: 'Alle Einträge', wert: alle.length ? `${alle.length}` : '' },
-        { href: '#ausgaben/einstellungen', icon: '⚙️', titel: 'Kurs & Budget', wert: `1 € = ${formatKurs(kurs.wert)} ฿` },
+        { href: '#geld/statistik', icon: '📊', titel: 'Übersicht & Diagramme', wert: alle.length ? `Ø ${formatEur(ue.durchschnitt)}` : '' },
+        { href: '#geld/liste', icon: '🧾', titel: 'Alle Einträge', wert: alle.length ? `${alle.length}` : '' },
+        { href: '#geld/einstellungen', icon: '⚙️', titel: 'Kurs & Budget', wert: `1 € = ${formatKurs(kurs.wert)} ฿` },
       ]))}`,
   };
 }
@@ -91,7 +91,7 @@ function formularSeite(daten, eigene, jetzt, a, ui) {
 
   return {
     titel: neu ? 'Neue Ausgabe' : 'Ausgabe bearbeiten',
-    zurueck: '#ausgaben',
+    zurueck: '#geld',
     html: `
       <div class="formular" data-ausgabe="${e(a?.id ?? '')}">
         <div class="betrag">
@@ -106,7 +106,7 @@ function formularSeite(daten, eigene, jetzt, a, ui) {
         <h2 class="label">Kategorie</h2>
         <div class="chips" role="radiogroup" aria-label="Kategorie">
           ${katListe.map((k) => `
-            <label class="chip"><input type="radio" name="kategorie" value="${e(k)}" ${k === werte.kat ? 'checked' : ''}><span>${kategorieIcon(k)} ${e(k)}</span></label>`).join('')}
+            <label class="chip"><input type="radio" name="kategorie" value="${e(k)}" ${k === werte.kat ? 'checked' : ''}><span>${e(k)}</span></label>`).join('')}
         </div>
 
         <h2 class="label">Notiz</h2>
@@ -116,7 +116,7 @@ function formularSeite(daten, eigene, jetzt, a, ui) {
         <input id="ausgabe-datum" class="eingabe eingabe--voll" type="date" value="${e(werte.d)}">
 
         <button class="knopf knopf--haupt knopf--breit knopf--gross" data-aktion="ausgabe-speichern">${neu ? 'Speichern' : 'Änderung speichern'}</button>
-        ${neu ? '' : '<button class="knopf knopf--text knopf--gefahr" data-aktion="ausgabe-loeschen">Ausgabe löschen</button>'}
+        ${neu ? '' : '<button class="knopf knopf--leise knopf--breit knopf--gefahr" data-aktion="ausgabe-loeschen">Ausgabe löschen</button>'}
         <p class="leise klein zentriert">Kurs: 1 € = ${formatKurs(kurs.wert)} ฿</p>
       </div>`,
   };
@@ -155,7 +155,7 @@ function statistikSeite(daten, eigene, jetzt) {
   const alle = gueltigeAusgaben(eigene);
   const budget = tagesbudgetEur(daten, eigene);
   const reiseTage = thailandTage(daten);
-  if (!alle.length) return { titel: 'Übersicht', zurueck: '#ausgaben', html: leer('Noch keine Ausgaben eingetragen.') };
+  if (!alle.length) return { titel: 'Übersicht', zurueck: '#geld', html: leer('Noch keine Ausgaben eingetragen.') };
   const ue = ueberblick(alle, reiseTage, budget, standardDatum(daten, jetzt));
   const proTag = summenNach(alle, (a) => a.d).sort((a, b) => b.key.localeCompare(a.key));
   const maxTag = Math.max(budget * 1.25, ...proTag.map((t) => t.eur));
@@ -164,21 +164,21 @@ function statistikSeite(daten, eigene, jetzt) {
   const st = STATUS_TEXT[ue.status];
   return {
     titel: 'Übersicht',
-    zurueck: '#ausgaben',
+    zurueck: '#geld',
     html: `
       <section class="held">
         <p class="held__label">Bisher ausgegeben</p>
         <h1 class="held__zahl">${formatEur(ue.gesamtEur)}</h1>
-        <p class="held__unter">${formatThb(ue.gesamtThb)} · Ø ${formatEur(ue.durchschnitt)} pro Tag <span class="text-${ue.status}">${st.icon}</span></p>
+        <p class="held__unter">${formatThb(ue.gesamtThb)} · Ø ${formatEur(ue.durchschnitt)} pro Tag <span class="text-${ue.status}">· ${st.text}</span></p>
       </section>
       <div class="kennzahlen">
         <div><small>Budget Reise</small><b>${formatEur(ue.budgetGesamt)}</b><span class="leise klein">${reiseTage.length} × ${formatEur(budget)}</span></div>
         <div><small>Noch übrig</small><b class="${ue.restGesamt < 0 ? 'text-rot' : ''}">${formatEur(ue.restGesamt)}</b><span class="leise klein">für die Reise</span></div>
       </div>
       ${abschnitt('Pro Tag', `<p class="leise klein">Strich = Tagesbudget ${formatEur(budget)}</p>${balkenListe(proTag, maxTag,
-        (x) => `${STATUS_TEXT[budgetStatus(x.eur, budget)].icon} ${e(formatTag(x.key))}`,
+        (x) => `<span class="punkt" style="--ort:var(--${budgetStatus(x.eur, budget)})"></span>${e(formatTag(x.key))}`,
         () => `<i class="balkenliste__marke" style="left:${(budget / maxTag) * 100}%"></i>`)}`)}
-      ${abschnitt('Pro Kategorie', balkenListe(proKat, proKat[0].eur, (x) => `${kategorieIcon(x.key)} ${e(x.key)}`))}
+      ${abschnitt('Pro Kategorie', balkenListe(proKat, proKat[0].eur, (x) => e(x.key)))}
       ${abschnitt('Pro Ort', balkenListe(proOrt, proOrt[0].eur, (x) => e(x.key ? ortInfo(daten, x.key).name : 'Ohne Ort')))}`,
   };
 }
@@ -187,7 +187,7 @@ function statistikSeite(daten, eigene, jetzt) {
 
 function listenSeite(daten, eigene) {
   const alle = gueltigeAusgaben(eigene);
-  if (!alle.length) return { titel: 'Alle Einträge', zurueck: '#ausgaben', html: leer('Noch keine Ausgaben eingetragen.') };
+  if (!alle.length) return { titel: 'Alle Einträge', zurueck: '#geld', html: leer('Noch keine Ausgaben eingetragen.') };
   const nachTag = new Map();
   for (const a of [...alle].sort((x, y) => (y.d + (y.zeit ?? '')).localeCompare(x.d + (x.zeit ?? '')))) {
     if (!nachTag.has(a.d)) nachTag.set(a.d, []);
@@ -195,7 +195,7 @@ function listenSeite(daten, eigene) {
   }
   return {
     titel: 'Alle Einträge',
-    zurueck: '#ausgaben',
+    zurueck: '#geld',
     html: [...nachTag.entries()].map(([d, eintraege]) => {
       const summe = eintraege.reduce((s, a) => s + inThb(a), 0);
       const ort = ortInfo(daten, eintraege[0].p).name;
@@ -212,7 +212,7 @@ function einstellungsSeite(daten, eigene) {
   const alle = gueltigeAusgaben(eigene);
   return {
     titel: 'Kurs & Budget',
-    zurueck: '#ausgaben',
+    zurueck: '#geld',
     html: `
       ${abschnitt('Wechselkurs', `
         <div class="segment" role="radiogroup" aria-label="Wechselkurs">
@@ -228,12 +228,12 @@ function einstellungsSeite(daten, eigene) {
           ? `Kurs der Europäischen Zentralbank${kurs.stand ? ` vom ${e(formatTag(kurs.stand))}` : ''}${eigene?.kursCache?.geholt ? `, geholt ${e(formatLang(new Date(eigene.kursCache.geholt), TZ_DE))} Uhr` : ''}.`
           : 'Standardwert – wird automatisch aktualisiert, sobald du online bist.'}
           Die App aktualisiert den Kurs von selbst (höchstens alle 12 Stunden). Jede Ausgabe merkt sich den Kurs von ihrem Tag.</p>
-        <button class="knopf knopf--breit" data-aktion="kurs-holen">🔄 Jetzt aktualisieren</button>`}`)}
+        <button class="knopf knopf--breit" data-aktion="kurs-holen">Jetzt aktualisieren</button>`}`)}
       ${abschnitt('Tagesbudget', `
         <label class="feld"><span>Euro pro Tag</span>
           <input id="tagesbudget" class="eingabe" type="text" inputmode="decimal" value="${e(formatKurs(budget))}">
         </label>`)}
-      ${alle.length ? abschnitt('Export', '<button class="knopf knopf--breit" data-aktion="ausgaben-csv">📊 Als Tabelle speichern (CSV)</button>') : ''}`,
+      ${alle.length ? abschnitt('Export', '<button class="knopf knopf--breit" data-aktion="ausgaben-csv">Als Tabelle speichern (CSV)</button>') : ''}`,
   };
 }
 
@@ -299,7 +299,7 @@ export const ausgabenAktionen = {
     }
     ctx.vibriere();
     ctx.speichereEigene();
-    ctx.zurueck('#ausgaben');
+    ctx.zurueck('#geld');
   },
   'ausgabe-loeschen': (el, ctx) => {
     if (!confirm('Diese Ausgabe löschen?')) return;
@@ -307,7 +307,7 @@ export const ausgabenAktionen = {
     ctx.state.eigene.ausgaben = ausgabenListe(ctx).filter((a) => a.id !== id);
     ctx.speichereEigene();
     ctx.toast('Gelöscht');
-    ctx.zurueck('#ausgaben');
+    ctx.zurueck('#geld');
   },
   'kurs-holen': async (el, ctx) => {
     const ok = await ctx.holeKurs(true);

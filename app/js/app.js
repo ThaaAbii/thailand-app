@@ -4,9 +4,9 @@ import * as db from './db.js';
 import { pruefeReiseDaten, zusammenfassung, trenneImport, baueExport, backupDateiname } from './daten.js';
 import { renderHeute, aktualisiereTicker } from './heute.js';
 import { seiteDaten } from './datenansicht.js';
-import { seitePlan, seiteTag } from './plan.js';
-import { seiteFristen } from './fristen.js';
-import { seiteCheckliste, seitePackliste, listenAktionen, listenAenderung } from './listen.js';
+import { seiteReise, seiteTag } from './reise.js';
+import { seiteAufgaben, aufgabenAktionen, aufgabenAenderung } from './aufgaben.js';
+import { seitePackliste, listenAktionen, listenAenderung } from './listen.js';
 import { seiteMehr, seiteBuchungen, seiteTipps } from './mehr.js';
 import { seiteAusgaben, ausgabenAktionen, ausgabenAenderung, ausgabenEingabe, aktualisiereUmrechnung } from './ausgaben.js';
 import { kursAusAntwort, kursVeraltet } from './ausgabenlogik.js';
@@ -72,23 +72,22 @@ function jetzt() {
 const r = () => mitAnpassungen(state.reise, state.eigene);
 const ROUTEN = {
   heute: { nav: 'heute', seite: () => ({ titel: r()?.reise?.titel || 'Thailand', html: renderHeute(r(), jetzt(), state.eigene) }) },
-  plan: { nav: 'plan', seite: () => seitePlan(r(), state.eigene, jetzt()) },
+  reise: { nav: 'reise', seite: () => seiteReise(r(), state.eigene, jetzt()) },
+  aufgaben: { nav: 'aufgaben', seite: (t) => seiteAufgaben(r(), state.eigene, jetzt(), t, { ausblenden: einstellung('ausblenden') === '1' }) },
   tag: {
-    nav: 'plan',
+    nav: 'reise',
     seite: (t) => (t[1] === 'bearbeiten'
       ? seiteTagBearbeiten(state.reise, r(), state.eigene, t[0])
       : seiteTag(r(), state.eigene, jetzt(), t[0])),
   },
-  unterkuenfte: { nav: 'mehr', seite: () => seiteUnterkuenfte(r(), state.eigene) },
-  unterkunft: { nav: 'mehr', seite: (t) => seiteUnterkunft(r(), state.eigene, t[0], t[1] === 'bearbeiten') },
-  fluege: { nav: 'mehr', seite: () => seiteFluege(r(), state.eigene, jetzt()) },
-  flug: { nav: 'mehr', seite: (t) => seiteFlug(r(), state.eigene, jetzt(), t[0], t[1]) },
-  ausgaben: { nav: 'ausgaben', seite: (t) => seiteAusgaben(r(), state.eigene, jetzt(), t, state.ausgabenUi) },
-  tagebuch: { nav: 'tagebuch', seite: (t) => seiteTagebuch(r(), state.eigene, jetzt(), t) },
+  unterkuenfte: { nav: 'reise', seite: () => seiteUnterkuenfte(r(), state.eigene) },
+  unterkunft: { nav: 'reise', seite: (t) => seiteUnterkunft(r(), state.eigene, t[0], t[1] === 'bearbeiten') },
+  fluege: { nav: 'reise', seite: () => seiteFluege(r(), state.eigene, jetzt()) },
+  flug: { nav: 'reise', seite: (t) => seiteFlug(r(), state.eigene, jetzt(), t[0], t[1]) },
+  geld: { nav: 'geld', seite: (t) => seiteAusgaben(r(), state.eigene, jetzt(), t, state.ausgabenUi) },
+  tagebuch: { nav: 'mehr', seite: (t) => seiteTagebuch(r(), state.eigene, jetzt(), t) },
   mehr: { nav: 'mehr', seite: () => seiteMehr(r(), state.eigene) },
-  checkliste: { nav: 'mehr', seite: (t) => seiteCheckliste(r(), state.eigene, t, { ausblenden: einstellung('ausblenden') === '1' }) },
   packliste: { nav: 'mehr', seite: (t) => seitePackliste(state.eigene, t), ohneDaten: true },
-  fristen: { nav: 'mehr', seite: () => seiteFristen(r(), jetzt()) },
   buchungen: { nav: 'mehr', seite: () => seiteBuchungen(r()) },
   tipps: { nav: 'mehr', seite: (t) => seiteTipps(r(), t) },
   karte: { nav: 'mehr', seite: () => seiteKarte(r(), jetzt(), state.karteUi) },
@@ -103,7 +102,7 @@ const ROUTEN = {
       zusammenfassung: state.reise ? zusammenfassung(state.reise) : null,
       vorschau: state.vorschau,
       kannTeilen: kannTeilen(),
-      thema: einstellung('thema') || 'system',
+      thema: einstellung('thema') || 'light',
       testdatum: testdatum(),
       offlineBereit: state.offlineBereit,
       persistent: state.persistent,
@@ -120,7 +119,8 @@ const ROUTEN = {
 
 function wendeThemaAn() {
   const t = einstellung('thema');
-  if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+  // Standard ist hell; dunkel nur, wenn du es einstellst
+  if (t === 'dark' || t === 'auto') document.documentElement.dataset.theme = t;
   else delete document.documentElement.dataset.theme;
   requestAnimationFrame(() => {
     const farbe = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
@@ -139,7 +139,7 @@ function toast(text, aktion) {
 function banner() {
   const teile = [];
   if (state.dbFehler) {
-    teile.push('<div class="banner banner--fehler">⚠️ Der Speicher auf diesem Gerät ist nicht verfügbar. Änderungen gehen beim Schließen verloren.</div>');
+    teile.push('<div class="banner banner--fehler">Der Speicher auf diesem Gerät ist nicht verfügbar. Änderungen gehen beim Schließen verloren.</div>');
   }
   if (testdatum()) {
     teile.push(`<a class="banner banner--test" href="#daten">🧪 Testdatum ${e(testdatum())} aktiv – antippen zum Ändern</a>`);
@@ -185,7 +185,7 @@ function render() {
   inhalt.innerHTML = banner() + seite.html;
 
   if (state.route === 'heute') aktualisiereTicker(inhalt, jetzt());
-  if (state.route === 'ausgaben') aktualisiereUmrechnung(inhalt, state.reise, state.eigene);
+  if (state.route === 'geld') aktualisiereUmrechnung(inhalt, state.reise, state.eigene);
   if (inhalt.querySelector('img[data-foto]')) ladeFotos(inhalt);
   letzterSchluessel = schluessel();
 }
@@ -213,7 +213,12 @@ function zeigeAnsicht() {
   naechsterErsetzt = false;
   aktuellerHash = hash;
 
-  const [name, ...teile] = hash.slice(1).split('/').map(decodeURIComponent);
+  let [name, ...teile] = hash.slice(1).split('/').map(decodeURIComponent);
+  // alte Adressen weiterleiten
+  if (name === 'plan') name = 'reise';
+  if (name === 'ausgaben') name = 'geld';
+  if (name === 'fristen') { name = 'aufgaben'; teile = []; }
+  if (name === 'checkliste') { name = 'aufgaben'; teile = teile.length ? ['gruppe', ...teile] : []; }
   state.route = name in ROUTEN ? name : 'heute';
   state.teile = teile.filter(Boolean);
   if (state.route !== 'daten') state.vorschau = null;
@@ -225,8 +230,8 @@ function zeigeAnsicht() {
     void inhalt.offsetWidth;
     inhalt.classList.add('einblenden');
   }
-  if (state.route === 'plan' && !zurueckGegangen) inhalt.querySelector('[data-heute]')?.scrollIntoView({ block: 'center' });
-  if (state.route === 'ausgaben' && state.teile[0] === 'neu') inhalt.querySelector('#ausgabe-betrag')?.focus();
+  if (state.route === 'reise' && !zurueckGegangen) inhalt.querySelector('[data-heute]')?.scrollIntoView({ block: 'center' });
+  if (state.route === 'geld' && state.teile[0] === 'neu') inhalt.querySelector('#ausgabe-betrag')?.focus();
 }
 
 /** Eine Ebene zurück – wie die Zurück-Taste, sonst direkt zur übergeordneten Seite. */
@@ -548,7 +553,7 @@ const APP_AKTIONEN = {
     zeigeVollbild(el.dataset.de, el.dataset.thai, el.dataset.laut);
   },
 };
-const MODUL_AKTIONEN = [listenAktionen, ausgabenAktionen, ideenAktionen, tagebuchAktionen, detailAktionen];
+const MODUL_AKTIONEN = [listenAktionen, ausgabenAktionen, ideenAktionen, tagebuchAktionen, detailAktionen, aufgabenAktionen];
 
 inhalt.addEventListener('click', (ev) => {
   const ersetzen = ev.target.closest('a[data-ersetzen]');
@@ -582,12 +587,13 @@ inhalt.addEventListener('input', (ev) => {
 
 inhalt.addEventListener('change', async (ev) => {
   const t = ev.target;
+  if (aufgabenAenderung(t, ctx)) return;
   if (listenAenderung(t, ctx)) return;
   if (await detailAenderung(t, ctx)) {
     zaehleFotos();
     return;
   }
-  if (state.route === 'ausgaben' && ausgabenAenderung(t, ctx)) return;
+  if (state.route === 'geld' && ausgabenAenderung(t, ctx)) return;
   if (state.route === 'tagebuch' && await tagebuchAenderung(t, ctx)) {
     zaehleFotos();
     return;
@@ -604,7 +610,7 @@ inhalt.addEventListener('change', async (ev) => {
   } else if (t.id === 'import-datei') {
     dateiGewaehlt(t.files?.[0]);
   } else if (t.name === 'thema') {
-    setzeEinstellung('thema', t.value === 'system' ? null : t.value);
+    setzeEinstellung('thema', t.value === 'light' ? null : t.value);
     wendeThemaAn();
   } else if (t.id === 'testdatum') {
     setzeEinstellung('testdatum', t.value || null);
@@ -615,7 +621,7 @@ inhalt.addEventListener('change', async (ev) => {
 window.addEventListener('hashchange', zeigeAnsicht);
 window.addEventListener('online', () => {
   onlineStatus();
-  holeKurs().then((neu) => { if (neu && state.route === 'ausgaben') render(); });
+  holeKurs().then((neu) => { if (neu && state.route === 'geld') render(); });
 });
 window.addEventListener('offline', onlineStatus);
 document.addEventListener('visibilitychange', () => {
@@ -639,5 +645,5 @@ setInterval(() => {
   await ladeDaten();
   try { state.persistent = (await navigator.storage?.persisted?.()) ?? false; } catch { /* egal */ }
   zeigeAnsicht();
-  holeKurs().then((neu) => { if (neu && state.route === 'ausgaben') render(); });
+  holeKurs().then((neu) => { if (neu && state.route === 'geld') render(); });
 })();

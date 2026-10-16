@@ -174,3 +174,10 @@ export function fristStufe(zeit, jetzt, tz = TZ_DE) {
   if (tage <= 21) return 'orange';
   return 'gruen';
 }
+
+/** Ende eines Tages (23:59) in der Zeitzone – für Aufgaben „bis zum …“. */
+export function zeitInZoneTag(iso, tz = TZ_DE) {
+  const [y, m, d] = String(iso).split('-').map(Number);
+  const alsUtc = Date.UTC(y, m - 1, d, 23, 59);
+  return new Date(alsUtc - versatzStunden(new Date(alsUtc), tz) * 3600000);
+}

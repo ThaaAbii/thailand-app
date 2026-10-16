@@ -47,7 +47,7 @@ export function checklistenGruppen(daten, eigene) {
       nachName.set(name, neu);
     }
     const key = `eigen:${p.id}`;
-    nachName.get(name).punkte.push({ key, id: p.id, text: p.text, notiz: p.notiz ?? '', erledigt: haken[key] ?? false, eigen: true });
+    nachName.get(name).punkte.push({ key, id: p.id, text: p.text, notiz: p.notiz ?? '', faellig: /^\d{4}-\d{2}-\d{2}$/.test(p.faellig ?? '') ? p.faellig : '', erledigt: haken[key] ?? false, eigen: true });
   }
   return gruppen;
 }

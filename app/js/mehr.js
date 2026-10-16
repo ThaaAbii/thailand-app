@@ -1,35 +1,30 @@
 // „Mehr“: aufgeräumtes Menü + Buchungen und Tipps.
 import { e } from './ui.js';
 import { liste, abschnitt, held, leer } from './bausteine.js';
-import { checklistenGruppen, fortschritt, packSummen, formatKg } from './listenlogik.js';
+import { packSummen, formatKg } from './listenlogik.js';
 
 export function seiteMehr(daten, eigene) {
-  const fc = fortschritt(checklistenGruppen(daten, eigene).flatMap((g) => g.punkte));
   const pack = Array.isArray(eigene?.packliste) ? eigene.packliste : null;
-  const nf = (Array.isArray(daten?.fristen) ? daten.fristen : []).filter((f) => Date.parse(f?.t) > Date.now()).length;
+  const tb = Object.values(eigene?.tagebuch ?? {}).filter((x) => x?.text || x?.fotos?.length).length;
   return {
     titel: 'Mehr',
     html: `
       ${abschnitt('Unterwegs', liste([
-        { href: '#notfall', icon: '🆘', titel: 'Notfall', unter: 'Notrufe, Versicherung, Botschaft' },
-        { href: '#thai', icon: '🗣️', titel: 'Thai-Spickzettel' },
-        { href: '#ideen', icon: '💡', titel: 'Ausflugsideen' },
-        { href: '#karte', icon: '🗺️', titel: 'Routenkarte' },
+        { href: '#notfall', icon: 'notfall', titel: 'Notfall', unter: 'Notrufe, Versicherung, Botschaft' },
+        { href: '#thai', icon: 'sprache', titel: 'Thai-Spickzettel' },
+        { href: '#tagebuch', icon: 'buch', titel: 'Reisetagebuch', wert: tb ? `${tb}` : '' },
+        { href: '#ideen', icon: 'idee', titel: 'Ausflugsideen' },
+        { href: '#karte', icon: 'karte', titel: 'Routenkarte' },
       ]))}
-      ${abschnitt('Reise', liste([
-        { href: '#fluege', icon: '✈️', titel: 'Flüge', unter: 'Flugnummer, Sitz, Online-Check-in, Bordkarte', wert: eigene?.fluege?.length ? `${eigene.fluege.length}` : '' },
-        { href: '#unterkuenfte', icon: '🛏️', titel: 'Unterkünfte', unter: 'Zimmer, Adresse, Telefon, Check-in/out' },
-        { href: '#plan', icon: '🗓️', titel: 'Fahrplan bearbeiten', unter: 'Tag antippen → „Tag bearbeiten“' },
-      ]))}
-      ${abschnitt('Vorbereitung', liste([
-        { href: '#checkliste', icon: '✅', titel: 'Checkliste', wert: fc.gesamt ? `${fc.erledigt}/${fc.gesamt}` : '' },
-        { href: '#packliste', icon: '🧳', titel: 'Packliste', wert: pack ? formatKg(packSummen(pack).aufgabe) : '' },
-        { href: '#fristen', icon: '⏰', titel: 'Fristen', wert: nf ? `${nf} offen` : '' },
-        { href: '#buchungen', icon: '🧾', titel: 'Buchungen' },
-        { href: '#tipps', icon: '📌', titel: 'Tipps' },
+      ${abschnitt('Planung', liste([
+        { href: '#packliste', icon: 'koffer', titel: 'Packliste', wert: pack ? formatKg(packSummen(pack).aufgabe) : '' },
+        { href: '#fluege', icon: 'flug', titel: 'Flüge', wert: eigene?.fluege?.length ? `${eigene.fluege.length}` : '' },
+        { href: '#unterkuenfte', icon: 'bett', titel: 'Unterkünfte' },
+        { href: '#buchungen', icon: 'beleg', titel: 'Buchungen' },
+        { href: '#tipps', icon: 'info', titel: 'Tipps' },
       ]))}
       ${abschnitt('App', liste([
-        { href: '#daten', icon: '💾', titel: 'Daten & Backup', unter: 'Import, Export, Darstellung' },
+        { href: '#daten', icon: 'speicher', titel: 'Daten & Backup', unter: 'Import, Export, Darstellung' },
       ]))}`,
   };
 }

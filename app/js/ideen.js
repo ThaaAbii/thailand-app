@@ -99,7 +99,7 @@ export function seiteIdeen(daten, eigene, teile) {
         const will = ideen.filter((i) => i.status === 'will').length;
         return {
           href: `#ideen/${p}`, punkt: o.farbe, titel: o.name,
-          unter: [will ? `${will} ⭐ geplant` : '', gemacht ? `${gemacht} ✅ gemacht` : ''].filter(Boolean).join(' · ') || `${ideen.length} Ideen`,
+          unter: [will ? `${will} geplant` : '', gemacht ? `${gemacht} gemacht` : ''].filter(Boolean).join(' · ') || `${ideen.length} Ideen`,
         };
       }))}`,
   };
@@ -114,20 +114,20 @@ function ortSeite(daten, eigene, ort) {
     icon: STATUS[i.status].icon,
     titel: i.titel,
     unter: i.info,
-    wertHtml: i.eigen ? `<span class="lz__klein" data-aktion="idee-loeschen" data-id="${e(i.id)}" role="button" aria-label="Löschen">🗑️</span>` : '',
+    wertHtml: i.eigen ? `<span class="zeile__klein" data-aktion="idee-loeschen" data-id="${e(i.id)}" role="button" aria-label="Löschen">×</span>` : '',
     pfeil: '',
-    klasse: i.status === 'gemacht' ? 'lz--erledigt' : '',
+    klasse: i.status === 'gemacht' ? 'ist-erledigt' : '',
   });
   return {
     titel: o.name,
     zurueck: '#ideen',
     html: `
-      ${held({ label: 'Ausflugsideen', titel: o.name, unter: 'Antippen: ○ → ⭐ will ich → ✅ gemacht', farbe: o.farbe })}
+      ${held({ label: 'Ausflugsideen', titel: o.name, unter: 'Antippen: Idee → will ich → gemacht', farbe: o.farbe })}
       ${abschnitt('Will ich machen', liste(gruppe('will').map(zeileFuer)))}
       ${abschnitt('Ideen', liste(gruppe('offen').map(zeileFuer)))}
       ${abschnitt('Gemacht', liste(gruppe('gemacht').map(zeileFuer)))}
       ${!ideen.length ? leer('Noch keine Ideen für diesen Ort.') : ''}
-      <button class="knopf knopf--breit" data-aktion="idee-neu" data-ort="${e(ort)}">＋ Eigene Idee</button>`,
+      <button class="knopf knopf--leise knopf--breit" data-aktion="idee-neu" data-ort="${e(ort)}">Eigene Idee</button>`,
   };
 }
 
