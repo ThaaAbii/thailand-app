@@ -83,7 +83,7 @@ export function bordkarte(f, jetzt, opts = {}) {
         ${opts.vorschlag
           ? '<div class="bordkarte__uebernehmen"><b>Antippen zum Übernehmen</b></div>'
           : `<div><small>Sitz</small><b>${e(f.sitz || '–')}</b></div>
-             <div><small>Gepäck</small><b>${e(f.gepaeck || '–')}</b></div>
+             <div><small>Gepäck</small><b>${e(String(f.gepaeck || '–').split(' · ')[0].replace(/\s*Aufgabe(gepäck)?$/i, ''))}</b></div>
              <div><small>Check-in</small><b class="text-${st.klasse}">${e(st.text)}</b></div>`}
       </div>
     </${tag}>`;

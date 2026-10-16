@@ -70,7 +70,7 @@ export function seiteUnterkuenfte(daten, eigene) {
 /** Grunddaten aus dem Steckbrief (Reisedaten) – deine eigenen Angaben haben Vorrang. */
 export function hotelBasis(daten, name) {
   const i = hotelInfo(daten, name);
-  return Object.fromEntries(Object.entries({ adresse: i.adresse, telefon: i.telefon, checkin: i.checkin, checkout: i.checkout, zimmer: i.zimmer, mail: i.mail })
+  return Object.fromEntries(Object.entries({ adresse: i.adresse, telefon: i.telefon, checkin: i.checkin, checkout: i.checkout, zimmer: i.zimmer, mail: i.mail, buchung: i.buchung })
     .filter(([, v]) => typeof v === 'string' && v));
 }
 
