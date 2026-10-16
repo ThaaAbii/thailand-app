@@ -9,6 +9,8 @@ import {
   checkinOeffnet, abflugZeit, flughafenZone, unterkunftDetails, alleUnterkuenfte,
 } from './anpassungen.js';
 import { fotoAufnehmen } from './tagebuch.js';
+import { bordkarte, hotelKarte } from './visuell.js';
+import { ikon } from './ikonen.js';
 
 function feld(name, label, wert, { mehrzeilig = false, typ = 'text', platzhalter = '', extra = '' } = {}) {
   return `
@@ -42,22 +44,24 @@ export function seiteTagBearbeiten(original, aktuell, eigene, d) {
 
 // ---------- Unterkunft ----------
 
+/** Fotos eines Hotels (IDs im Foto-Speicher). */
+export function hotelFotos(eigene, name) {
+  const f = eigene?.hotelFotos?.[name];
+  return Array.isArray(f) ? f.filter((x) => typeof x === 'string') : [];
+}
+
 export function seiteUnterkuenfte(daten, eigene) {
   const liste0 = alleUnterkuenfte(daten);
   return {
     titel: 'Unterkünfte',
     zurueck: '#mehr',
-    html: liste(liste0.map((u) => {
+    html: liste0.length ? `<div class="hotelkarten">${liste0.map((u) => {
       const det = unterkunftDetails(eigene, u.name);
-      const ort = ortInfo(daten, u.p);
-      return {
-        href: `#unterkunft/${encodeURIComponent(u.name)}`,
-        punkt: ort.farbe,
-        titel: u.name,
-        unter: `${formatTag(u.von)} – ${formatTag(u.bis)} · ${u.naechte} ${u.naechte === 1 ? 'Nacht' : 'Nächte'}${det.zimmer ? ` · Zimmer ${det.zimmer}` : ''}`,
-        wert: Object.values(det).some(Boolean) ? '✓' : '',
-      };
-    })) || leer('Keine Unterkünfte im Fahrplan.'),
+      const unter = [det.checkin && `Check-in ${det.checkin}`, det.zimmer && `Zimmer ${det.zimmer}`].filter(Boolean).join(' · ');
+      return hotelKarte(u, ortInfo(daten, u.p), hotelFotos(eigene, u.name)[0], unter);
+    }).join('')}</div>
+      <p class="leise klein abstand-klein">Tippe auf ein Hotel, um Fotos, Adresse, Zimmer und Check-in-Zeiten zu ergänzen.</p>`
+      : leer('Keine Unterkünfte im Fahrplan.'),
   };
 }
 
@@ -75,14 +79,34 @@ export function unterkunftZeilen(name, det, ortName = '') {
   ];
 }
 
+export function bilderSuche(name, ortName) {
+  return `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(`${name} ${ortName} Hotel`)}`;
+}
+
+function galerie(eigene, name) {
+  const fotos = hotelFotos(eigene, name);
+  const neu = `
+    <label class="galerie__neu" aria-label="Fotos hinzufügen">
+      <input type="file" id="hotel-foto" accept="image/*" multiple hidden data-hotel="${e(name)}">
+      ${ikon('plus')}<span>${fotos.length ? 'Mehr Fotos' : 'Fotos hinzufügen'}</span>
+      ${fotos.length ? '' : '<small>z. B. Screenshots von Booking oder eigene Bilder</small>'}
+    </label>`;
+  return `
+    <div class="galerie${fotos.length ? '' : ' galerie--leer'}">
+      ${fotos.map((id) => `<button class="galerie__bild" data-aktion="foto-zeigen" data-id="${e(id)}" data-hotel="${e(name)}" aria-label="Foto ansehen"><img data-foto="${e(id)}" alt=""></button>`).join('')}
+      ${neu}
+    </div>
+    ${fotos.length > 1 ? `<p class="galerie__hinweis">${fotos.length} Fotos · zur Seite wischen</p>` : ''}`;
+}
+
 export function seiteUnterkunft(daten, eigene, name, bearbeiten) {
   const u = alleUnterkuenfte(daten).find((x) => x.name === name);
   const det = unterkunftDetails(eigene, name);
   const ort = ortInfo(daten, u?.p);
-  if (bearbeiten || !Object.values(det).some(Boolean)) {
+  if (bearbeiten) {
     return {
       titel: 'Hotel-Details',
-      zurueck: bearbeiten ? `#unterkunft/${encodeURIComponent(name)}` : '#unterkuenfte',
+      zurueck: `#unterkunft/${encodeURIComponent(name)}`,
       html: `
         ${held({ label: u ? `${formatTag(u.von)} – ${formatTag(u.bis)}` : '', titel: name })}
         <div class="formular" data-unterkunft-form="${e(name)}">
@@ -91,13 +115,18 @@ export function seiteUnterkunft(daten, eigene, name, bearbeiten) {
         </div>`,
     };
   }
+  const hatDetails = Object.values(det).some(Boolean);
   return {
     titel: 'Unterkunft',
     zurueck: '#unterkuenfte',
     html: `
+      ${galerie(eigene, name)}
       ${held({ label: u ? `${formatTag(u.von)} – ${formatTag(u.bis)} · ${u.naechte} ${u.naechte === 1 ? 'Nacht' : 'Nächte'}` : '', titel: name, unterHtml: u ? `<span class="punkt" style="--ort:${ort.farbe}"></span>${e(ort.name)}` : '' })}
       ${abschnitt('', liste(unterkunftZeilen(name, det, ort.name)))}
-      <a class="knopf knopf--leise knopf--breit" href="#unterkunft/${encodeURIComponent(name)}/bearbeiten">Details bearbeiten</a>`,
+      ${abschnitt('', liste([
+        { href: `#unterkunft/${encodeURIComponent(name)}/bearbeiten`, icon: 'notiz', farbe: 'blau', titel: hatDetails ? 'Details bearbeiten' : 'Zimmer, Adresse, Telefon ergänzen' },
+        { href: bilderSuche(name, ort.name), extern: true, icon: 'teilen', farbe: 'grau', titel: 'Fotos im Netz ansehen', unter: 'Öffnet die Google-Bildersuche' },
+      ]))}`,
   };
 }
 
@@ -126,15 +155,9 @@ export function seiteFluege(daten, eigene, jetzt) {
     titel: 'Flüge',
     zurueck: '#mehr',
     html: `
-      ${fluege.length ? liste(fluege.map((f) => flugZeile(f, jetzt))) : leer('Noch keine Flüge eingetragen.')}
-      ${vorschlaege.length ? abschnitt('Im Fahrplan gefunden', liste(vorschlaege.map((v, i) => ({
-        aktion: 'flug-uebernehmen', daten: { index: i },
-        icon: 'plus',
-        titel: `${v.nummer || v.airline || 'Flug'}${v.von ? ` · ${v.von}${v.nach ? ` → ${v.nach}` : ''}` : ''}`,
-        unter: `${formatTag(v.d)}${v.abflug ? ` · ${v.abflug}` : ''} – antippen zum Übernehmen`,
-        pfeil: '',
-      })))) : ''}
-      <a class="knopf knopf--leise knopf--breit" href="#flug/neu">Flug hinzufügen</a>`,
+      ${fluege.length ? `<div class="bordkarten">${fluege.map((f) => bordkarte(f, jetzt)).join('')}</div>` : leer('Noch keine Flüge eingetragen.')}
+      ${vorschlaege.length ? abschnitt('Im Fahrplan gefunden', `<div class="bordkarten">${vorschlaege.map((v, i) => bordkarte(v, jetzt, { vorschlag: true, index: i })).join('')}</div>`) : ''}
+      <a class="knopf knopf--breit" href="#flug/neu">Flug hinzufügen</a>`,
   };
 }
 
@@ -320,6 +343,22 @@ export async function detailAenderung(t, ctx) {
       ctx.vibriere();
       ctx.toast(t.value === 'erledigt' ? 'Check-in erledigt ✓' : 'Gespeichert');
     }
+    return true;
+  }
+  if (t.id === 'hotel-foto' && t.files?.length) {
+    const name = t.dataset.hotel;
+    const e2 = ctx.state.eigene;
+    e2.hotelFotos ??= {};
+    const liste0 = hotelFotos(e2, name);
+    ctx.toast('Fotos werden gespeichert …');
+    for (const datei of t.files) {
+      try { liste0.push(await fotoAufnehmen(datei, '')); } catch { /* übersprungen */ }
+    }
+    e2.hotelFotos[name] = liste0;
+    await ctx.speichereEigene();
+    ctx.dauerhaftAnfragen?.();
+    ctx.toast('Gespeichert ✓');
+    ctx.render();
     return true;
   }
   if (t.id === 'flug-foto' && t.files?.length) {

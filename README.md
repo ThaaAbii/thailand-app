@@ -35,6 +35,9 @@ und sind im Backup-Export unter `_app.eigene` enthalten. Fotos liegen im Indexed
   einer Tabelle (Segment-Reiter). „Plan“ zeigt oben Heute und darunter alle Tage auf einen Blick – als Übersicht
   (Unterwegs | Schlafen nebeneinander) oder als echte Tabelle. Buchungen: Flüge, Hotels, Kosten mit Storno-Risiko.
   Eigene Versicherungsseite. Design im Apple-Stil: graue Fläche, weiße Gruppen, Schrift Inter (lokal, OFL-Lizenz).
+- ✅ Feinschliff: Flüge als Bordkarten (Flugdauer über Zeitzonen), Hotels als Fotokarten mit eigener Galerie
+  (Fotos aus der Galerie, offline, im Backup), Geld mit Ring und 7-Tage-Säulen, **Budgetplanung** wie das
+  Excel-Blatt (Posten, Kreditkarte, Umschlag → Optionen → gewählter Plan = Tagesbudget). Tagebuch ausgeblendet.
 
 ## Aufbau
 

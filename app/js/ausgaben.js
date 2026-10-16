@@ -3,6 +3,10 @@ import { reisePhase, thailandTage, formatTag, formatLang, TZ_DE } from './zeit.j
 import { e, ortInfo } from './ui.js';
 import { liste, abschnitt, balken, leer, reiter, grosstitel } from './bausteine.js';
 import { neueId } from './listenlogik.js';
+import { ikon } from './ikonen.js';
+import { ring, saeulen } from './visuell.js';
+import { seiteBudgetplan } from './budget.js';
+import { gewaehlteOption, hatPlanung } from './budgetlogik.js';
 import {
   kategorien, kategorieIcon, tagesbudgetEur, aktuellerKurs, parseBetrag, inEur, inThb,
   gueltigeAusgaben, summenNach, budgetStatus, STATUS_TEXT, ueberblick, ausgabenCsv,
@@ -50,6 +54,7 @@ export function seiteAusgaben(daten, eigene, jetzt, teile, ui) {
   if (unter === 'statistik') return statistikSeite(daten, eigene, jetzt);
   if (unter === 'liste') return listenSeite(daten, eigene);
   if (unter === 'einstellungen') return einstellungsSeite(daten, eigene);
+  if (unter === 'plan') return seiteBudgetplan(daten, eigene);
   return startSeite(daten, eigene, jetzt);
 }
 
@@ -68,19 +73,41 @@ function startSeite(daten, eigene, jetzt) {
   const ue = ueberblick(alle, thailandTage(daten), budget, datum);
   const zuletzt = [...alle].sort((x, y) => (y.d + (y.zeit ?? '')).localeCompare(x.d + (x.zeit ?? ''))).slice(0, 4);
 
+  const tage = thailandTage(daten);
+  const i = tage.indexOf(datum);
+  const start = i >= 0 ? Math.max(0, Math.min(i - 3, tage.length - 7)) : datum < (tage[0] ?? '') ? 0 : Math.max(0, tage.length - 7);
+  const fenster = tage.slice(start, start + 7);
+  const proTag = new Map();
+  for (const a of alle) proTag.set(a.d, (proTag.get(a.d) ?? 0) + inEur(a));
+  const woche = fenster.map((d) => {
+    const w = proTag.get(d) ?? 0;
+    return { label: formatTag(d).split(',')[0].replace('.', ''), wert: w, stufe: w ? budgetStatus(w, budget) : '', aktiv: d === datum };
+  });
+  const anteil = budget ? eur / budget : 0;
+  const plan = gewaehlteOption(daten, eigene, kurs.wert);
+  const manuell = Number(eigene?.einstellungen?.tagesbudget) > 0;
+
   return {
     titel: 'Geld',
     grosstitel: true,
     html: `
       ${kopf('#geld')}
       <section class="geldkarte">
-        <p class="held__label">Heute · ${e(formatTag(datum))}</p>
-        <p class="held__zahl">${formatThb(thb)}</p>
-        <p class="held__unter">${formatEur(eur)} von ${formatEur(budget)} · <span class="text-${status}">${STATUS_TEXT[status].text}</span></p>
-        ${balken((eur / budget) * 100, status)}
-        <p class="leise klein">${rest >= 0 ? `Noch ${formatThb(rest * kurs.wert)} frei` : `${formatThb(-rest * kurs.wert)} drüber`}</p>
+        <div class="geldkarte__oben">
+          ${ring(anteil, status, `<b>${Math.round(anteil * 100)}<small>%</small></b>`)}
+          <div class="geldkarte__zahlen">
+            <small>Heute · ${e(formatTag(datum))}</small>
+            <b class="geldkarte__betrag">${formatThb(thb)}</b>
+            <span>${formatEur(eur)} von ${formatEur(budget)}</span>
+            <span class="text-${status}">${rest >= 0 ? `noch ${formatThb(rest * kurs.wert)} frei` : `${formatThb(-rest * kurs.wert)} drüber`}</span>
+          </div>
+        </div>
+        ${alle.length ? `<div class="geldkarte__woche">${saeulen(woche, budget)}</div>` : ''}
       </section>
-      <a class="knopf knopf--haupt knopf--breit knopf--gross" href="#geld/neu">Ausgabe eintragen</a>
+      <a class="knopf knopf--haupt knopf--breit knopf--gross" href="#geld/neu">${ikon('plus')}Ausgabe eintragen</a>
+      ${abschnitt('', liste([
+        { href: '#geld/plan', icon: 'schloss', farbe: 'indigo', titel: 'Budgetplanung', unter: plan && !manuell ? `Option ${plan.nr} · ${plan.name}` : hatPlanung(daten, eigene) ? 'Optionen vergleichen, Plan wählen' : 'Geld bis zur Abreise planen', wert: `${formatEur(budget)} / Tag` },
+      ]))}
       ${zuletzt.length ? abschnitt('Zuletzt', liste(zuletzt.map(ausgabeZeile))) : ''}
       ${abschnitt('', liste([
         { href: '#geld/einstellungen', icon: 'einstellung', farbe: 'grau', titel: 'Kurs & Budget', wert: `1 € = ${formatKurs(kurs.wert)} ฿` },

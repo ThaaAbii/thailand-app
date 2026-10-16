@@ -376,7 +376,42 @@
       "Geldautomat",
       "Geschenke",
       "Sonstiges"
-    ]
+    ],
+    "planung": {
+      "posten": [
+        {
+          "id": "p1",
+          "was": "Erspartes",
+          "betrag": 600,
+          "wann": "Oktober",
+          "hinweis": "Beispielwert"
+        },
+        {
+          "id": "p2",
+          "was": "Nebenjob",
+          "betrag": 300,
+          "wann": "November",
+          "hinweis": ""
+        },
+        {
+          "id": "p3",
+          "was": "Tauchkurs vor Ort",
+          "betrag": -350,
+          "wann": "vor Ort",
+          "hinweis": "zur Seite legen"
+        }
+      ],
+      "kreditkarte": 300,
+      "kreditkarteMax": 600,
+      "umschlag": 300,
+      "reisetage": 22,
+      "sparsam": 35,
+      "normal": 50,
+      "gewaehlt": 2,
+      "hinweise": [
+        "Demo: erfundene Beispielwerte – deine echten Zahlen kommen mit dem Import deiner reise-daten.json."
+      ]
+    }
   },
   "versicherung": {
     "anbieter": "Demo-Versicherung",

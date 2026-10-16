@@ -5,7 +5,6 @@ import { packSummen, formatKg } from './listenlogik.js';
 
 export function seiteMehr(daten, eigene) {
   const pack = Array.isArray(eigene?.packliste) ? eigene.packliste : null;
-  const tb = Object.values(eigene?.tagebuch ?? {}).filter((x) => x?.text || x?.fotos?.length).length;
   const v = daten?.versicherung ?? {};
   return {
     titel: 'Mehr',
@@ -17,9 +16,6 @@ export function seiteMehr(daten, eigene) {
         { href: '#versicherung', icon: 'schild', farbe: 'blau', titel: 'Versicherung', unter: [v.anbieter, v.tarif].filter(Boolean).join(' ') || 'Notruf, Leistungen, Schadenfall' },
         { href: '#thai', icon: 'sprache', farbe: 'orange', titel: 'Thai-Spickzettel' },
         { href: '#karte', icon: 'karte', farbe: 'gruen', titel: 'Routenkarte' },
-      ]))}
-      ${abschnitt('Erinnerungen', liste([
-        { href: '#tagebuch', icon: 'buch', farbe: 'lila', titel: 'Reisetagebuch', wert: tb ? `${tb}` : '' },
         { href: '#ideen', icon: 'idee', farbe: 'gelb', titel: 'Ausflugsideen' },
       ]))}
       ${abschnitt('Vorbereitung', liste([

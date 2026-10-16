@@ -9,7 +9,7 @@ import { liste, abschnitt, reiter, grosstitel, leer } from './bausteine.js';
 import { ikon } from './ikonen.js';
 import { alleAufgaben, anstehend, aufgabeZeile } from './aufgaben.js';
 import { fluegeAm, unterkunftDetails } from './anpassungen.js';
-import { flugZeile } from './details.js';
+import { flugZeile, hotelFotos } from './details.js';
 import { stationen } from './reise.js';
 import { gueltigeAusgaben, inEur, inThb, tagesbudgetEur, budgetStatus, STATUS_TEXT, formatThb, formatEur } from './ausgabenlogik.js';
 
@@ -101,6 +101,7 @@ function unterwegs(daten, ph, jetzt, eigene) {
 
   return `
     <section class="heutekarte" style="--ort:${ort.farbe}" ${ph.abflug && ph.abflug > jetzt ? `data-cd="${e(ph.abflug.toISOString())}"` : ''}>
+      ${stay && hotelFotos(eigene, stay)[0] ? `<a class="heutekarte__bild" href="#unterkunft/${encodeURIComponent(stay)}"><img data-foto="${e(hotelFotos(eigene, stay)[0])}" alt=""></a>` : ''}
       <div class="heutekarte__kopf">
         <span class="marke">${e(ph.label)}</span>
         <span class="heutekarte__datum">${e(formatTag(ph.datum))}</span>
@@ -114,7 +115,7 @@ function unterwegs(daten, ph, jetzt, eigene) {
           const z = flugZeile(f, jetzt);
           return infoZeile({ href: z.href, icon: 'flug', label: 'Flug', titel: z.titel, unter: [z.unter, z.wert].filter(Boolean).join(' · ') });
         }).join('')}
-        ${stay ? infoZeile({ href: `#tag/${ph.datum}`, icon: 'bett', label: 'Schlafen', titel: stay, unter: [det.zimmer && `Zimmer ${det.zimmer}`, ...zeilen(t?.ci)].filter(Boolean).join(' · ') }) : ''}
+        ${stay ? infoZeile({ href: `#unterkunft/${encodeURIComponent(stay)}`, icon: 'bett', label: 'Schlafen', titel: stay, unter: [det.zimmer && `Zimmer ${det.zimmer}`, ...zeilen(t?.ci)].filter(Boolean).join(' · ') }) : ''}
         ${t?.note ? infoZeile({ icon: 'notiz', label: 'Notiz', titelHtml: zeilen(t.note).map(e).join('<br>') }) : ''}
         ${imLand ? infoZeile({ href: '#geld', icon: 'geld', label: 'Heute ausgegeben', titel: thb ? `${formatThb(thb)} · ${formatEur(eur)}` : 'Noch nichts', unter: thb ? STATUS_TEXT[status].text : 'Antippen zum Eintragen' }) : ''}
         ${morgen ? infoZeile({ href: `#tag/${morgenDatum}`, icon: 'kalender', label: 'Morgen', titel: morgen.t || ortInfo(daten, morgen.p).name, unter: zeilen(morgen.tr)[0] || (morgen.stay && morgen.stay !== t?.stay ? morgen.stay : '') }) : ''}
@@ -124,14 +125,12 @@ function unterwegs(daten, ph, jetzt, eigene) {
 }
 
 function nachher(ph, eigene) {
-  const tage = Object.values(eigene?.tagebuch ?? {}).filter((x) => x?.text || x?.fotos?.length).length;
   const eur = gueltigeAusgaben(eigene).reduce((s, a) => s + inEur(a), 0);
   return `
     <section class="heutekarte">
       <div class="heutekarte__kopf"><span class="marke">Reise beendet</span></div>
       <h2 class="heutekarte__titel">Willkommen zurück</h2>
       <div class="heutekarte__zeilen">
-        ${infoZeile({ href: '#tagebuch', icon: 'buch', label: 'Tagebuch', titel: `${tage} ${tage === 1 ? 'Tag' : 'Tage'} festgehalten` })}
         ${infoZeile({ href: '#geld/statistik', icon: 'geld', label: 'Ausgaben vor Ort', titel: formatEur(eur) })}
         ${infoZeile({ href: '#daten', icon: 'speicher', label: 'Backup', titel: 'Backup mit Fotos speichern' })}
       </div>
