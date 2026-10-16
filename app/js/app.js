@@ -21,7 +21,7 @@ import {
   seiteTagebuch, tagebuchAktionen, tagebuchAenderung, tagebuchEingabe, ladeFotos,
   fotosFuerBackup, fotosAusBackup,
 } from './tagebuch.js';
-import { seiteTagBearbeiten, seiteUnterkunft, seiteFlug, detailAktionen, detailAenderung } from './details.js';
+import { seiteTagBearbeiten, seiteUnterkunft, seiteHotelFotos, seiteFlug, detailAktionen, detailAenderung } from './details.js';
 import { mitAnpassungen, fluegeAusReisedaten } from './anpassungen.js';
 import { e } from './ui.js';
 
@@ -85,7 +85,7 @@ const ROUTEN = {
   fluege: { nav: 'buchungen', seite: () => seiteBuchungsBlatt(r(), state.eigene, jetzt(), 'fluege') },
   unterkuenfte: { nav: 'buchungen', seite: () => seiteBuchungsBlatt(r(), state.eigene, jetzt(), 'unterkuenfte') },
   buchungen: { nav: 'buchungen', seite: () => seiteBuchungsBlatt(r(), state.eigene, jetzt(), 'buchungen') },
-  unterkunft: { nav: 'buchungen', seite: (t) => seiteUnterkunft(r(), state.eigene, t[0], t[1] === 'bearbeiten') },
+  unterkunft: { nav: 'buchungen', seite: (t) => (t[1] === 'fotos' ? seiteHotelFotos(r(), state.eigene, t[0]) : seiteUnterkunft(r(), state.eigene, t[0], t[1] === 'bearbeiten')) },
   flug: { nav: 'buchungen', seite: (t) => seiteFlug(r(), state.eigene, jetzt(), t[0], t[1]) },
   geld: { nav: 'geld', seite: (t) => seiteAusgaben(r(), state.eigene, jetzt(), t, state.ausgabenUi) },
   tagebuch: { nav: 'mehr', seite: (t) => seiteTagebuch(r(), state.eigene, jetzt(), t) },

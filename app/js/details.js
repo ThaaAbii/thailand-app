@@ -10,7 +10,8 @@ import {
 } from './anpassungen.js';
 import { fotoAufnehmen } from './tagebuch.js';
 import { bordkarte, hotelKarte } from './visuell.js';
-import { hotelInfo, sichtbareHotelBilder, bildKennung, titelBild, hotelKopfzeile, hotelAbschnitte } from './hotel.js';
+import { hotelInfo, hotelGalerie, titelBild, hotelKopfzeile, hotelAbschnitte } from './hotel.js';
+import * as db from './db.js';
 import { ikon } from './ikonen.js';
 
 function feld(name, label, wert, { mehrzeilig = false, typ = 'text', platzhalter = '', extra = '' } = {}) {
@@ -93,22 +94,46 @@ export function bilderSuche(name, ortName) {
   return `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(`${name} ${ortName} Hotel`)}`;
 }
 
+function bildHtml(b) {
+  return b.id ? `<img data-foto="${e(b.id)}" alt="">` : `<img src="${b.src}" alt="">`;
+}
+
 function galerie(daten, eigene, name) {
-  const fotos = hotelFotos(eigene, name);
-  const bilder = sichtbareHotelBilder(daten, eigene, name);
+  const bilder = hotelGalerie(daten, eigene, name);
   const neu = `
     <label class="galerie__neu" aria-label="Fotos hinzufügen">
       <input type="file" id="hotel-foto" accept="image/*" multiple hidden data-hotel="${e(name)}">
-      ${ikon('plus')}<span>${fotos.length ? 'Mehr Fotos' : 'Fotos hinzufügen'}</span>
-      ${fotos.length || bilder.length ? '' : '<small>z. B. Screenshots von Booking oder eigene Bilder</small>'}
+      ${ikon('plus')}<span>${bilder.length ? 'Mehr Fotos' : 'Fotos hinzufügen'}</span>
+      ${bilder.length ? '' : '<small>z. B. Screenshots von Booking oder eigene Bilder</small>'}
     </label>`;
   return `
-    <div class="galerie${fotos.length || bilder.length ? '' : ' galerie--leer'}">
-      ${bilder.map((src, i) => `<button class="galerie__bild" data-aktion="bild-zeigen" data-hotel="${e(name)}" data-nr="${i}" aria-label="Bild ansehen"><img src="${src}" alt=""></button>`).join('')}
-      ${fotos.map((id) => `<button class="galerie__bild" data-aktion="foto-zeigen" data-id="${e(id)}" data-hotel="${e(name)}" aria-label="Foto ansehen"><img data-foto="${e(id)}" alt=""></button>`).join('')}
+    <div class="galerie${bilder.length ? '' : ' galerie--leer'}">
+      ${bilder.map((b, i) => `<button class="galerie__bild" data-aktion="galerie-zeigen" data-hotel="${e(name)}" data-nr="${i}" aria-label="Bild ${i + 1} ansehen">${bildHtml(b)}</button>`).join('')}
       ${neu}
     </div>
-    ${fotos.length + bilder.length > 1 ? `<p class="galerie__hinweis">${fotos.length + bilder.length} Fotos · zur Seite wischen</p>` : ''}`;
+    ${bilder.length > 1 ? `<p class="galerie__hinweis"><span>${bilder.length} Fotos · zur Seite wischen</span><a href="#unterkunft/${encodeURIComponent(name)}/fotos">Reihenfolge bearbeiten</a></p>` : ''}`;
+}
+
+/** Fotos sortieren: Liste mit Hoch/Runter. */
+export function seiteHotelFotos(daten, eigene, name) {
+  const bilder = hotelGalerie(daten, eigene, name);
+  return {
+    titel: 'Fotos sortieren',
+    zurueck: `#unterkunft/${encodeURIComponent(name)}`,
+    html: `
+      ${held({ label: name, titel: 'Reihenfolge' })}
+      <p class="leise klein abstand-klein">Das oberste Foto ist das Titelbild – auf der Hotelkarte, der Heute-Karte und der Tagesseite.</p>
+      <div class="karte sortierliste">
+        ${bilder.map((b, i) => `
+          <div class="zeile sortierzeile">
+            <span class="sortierzeile__bild">${bildHtml(b)}</span>
+            <span class="zeile__text"><span class="zeile__titel">${i === 0 ? 'Titelbild' : `Foto ${i + 1}`}</span><span class="zeile__unter">${b.id ? 'eigenes Foto' : 'aus den Reisedaten'}</span></span>
+            <button class="sortierknopf" type="button" data-aktion="bild-schieben" data-hotel="${e(name)}" data-key="${e(b.key)}" data-richtung="-1" aria-label="Nach oben" ${i === 0 ? 'disabled' : ''}>${ikon('pfeilHoch')}</button>
+            <button class="sortierknopf" type="button" data-aktion="bild-schieben" data-hotel="${e(name)}" data-key="${e(b.key)}" data-richtung="1" aria-label="Nach unten" ${i === bilder.length - 1 ? 'disabled' : ''}>${ikon('pfeilRunter')}</button>
+          </div>`).join('') || leer('Noch keine Fotos.')}
+      </div>
+      <a class="knopf knopf--haupt knopf--breit" href="#unterkunft/${encodeURIComponent(name)}" data-ersetzen>Fertig</a>`,
+  };
 }
 
 export function seiteUnterkunft(daten, eigene, name, bearbeiten) {
@@ -268,31 +293,80 @@ export const detailAktionen = {
     ctx.toast('Bilder wiederhergestellt');
     ctx.render();
   },
-  'bild-zeigen': (el, ctx) => {
+  'galerie-zeigen': async (el, ctx) => {
     const name = el.dataset.hotel;
-    const src = sichtbareHotelBilder(ctx.daten(), ctx.state.eigene, name)[Number(el.dataset.nr)];
-    if (!src) return;
+    const bilder = hotelGalerie(ctx.daten(), ctx.state.eigene, name);
+    if (!bilder.length) return;
+    const urls = [];
+    const quelle = async (b) => {
+      if (b.src) return b.src;
+      const f = await db.fotoLesen(b.id).catch(() => null);
+      if (!f) return '';
+      const u = URL.createObjectURL(f.bild);
+      urls.push(u);
+      return u;
+    };
+    const srcs = await Promise.all(bilder.map(quelle));
     const ov = document.createElement('div');
     ov.className = 'fotoansicht';
-    ov.innerHTML = `<img src="${src}" alt=""><div class="fotoansicht__leiste"><button class="knopf" data-fa="zu">Schließen</button><button class="knopf knopf--gefahr" data-fa="weg">Löschen</button></div>`;
+    ov.innerHTML = `
+      <div class="fotoansicht__band">${srcs.map((u) => `<div class="fotoansicht__seite"><img src="${u}" alt=""></div>`).join('')}</div>
+      <p class="fotoansicht__zaehler"></p>
+      <div class="fotoansicht__leiste">
+        <button class="knopf" data-fa="zu">Schließen</button>
+        <button class="knopf knopf--gefahr" data-fa="weg">Löschen</button>
+      </div>`;
+    const band = ov.querySelector('.fotoansicht__band');
+    const zaehler = ov.querySelector('.fotoansicht__zaehler');
+    const aktuell = () => Math.round(band.scrollLeft / Math.max(1, band.clientWidth));
+    const zeige = () => { zaehler.textContent = `${aktuell() + 1} / ${band.children.length}`; };
+    band.addEventListener('scroll', zeige, { passive: true });
+    const aufraeumen = () => { ov.remove(); urls.forEach((u) => URL.revokeObjectURL(u)); };
     history.pushState({ foto: true }, '');
-    window.addEventListener('popstate', () => ov.remove(), { once: true });
+    window.addEventListener('popstate', aufraeumen, { once: true });
     ov.addEventListener('click', async (ev) => {
       const was = ev.target.closest('[data-fa]')?.dataset.fa;
       if (was === 'weg') {
         if (!confirm('Dieses Bild löschen?')) return;
+        const i = aktuell();
+        const b = bilder[i];
         const e2 = ctx.state.eigene;
-        e2.hotelBilderWeg ??= {};
-        e2.hotelBilderWeg[name] = [...new Set([...(e2.hotelBilderWeg[name] ?? []), bildKennung(src)])];
+        if (b.id) {
+          e2.hotelFotos[name] = (e2.hotelFotos?.[name] ?? []).filter((x) => x !== b.id);
+          await db.fotoLoeschen(b.id).catch(() => {});
+        } else {
+          e2.hotelBilderWeg ??= {};
+          e2.hotelBilderWeg[name] = [...new Set([...(e2.hotelBilderWeg[name] ?? []), b.key.slice(2)])];
+        }
         await ctx.speichereEigene();
-        history.back();
-        setTimeout(() => ctx.render(), 50);
-      } else if (was === 'zu' || ev.target === ov) {
+        bilder.splice(i, 1);
+        band.children[i].remove();
+        if (!bilder.length) history.back();
+        else zeige();
+        ctx.render();
+      } else if (was === 'zu') {
         history.back();
       }
     });
     document.body.append(ov);
+    band.scrollLeft = band.clientWidth * Number(el.dataset.nr || 0);
+    zeige();
   },
+  'bild-schieben': (el, ctx) => {
+    const name = el.dataset.hotel;
+    const e2 = ctx.state.eigene;
+    const reihe = hotelGalerie(ctx.daten(), e2, name).map((b) => b.key);
+    const i = reihe.indexOf(el.dataset.key);
+    const j = i + Number(el.dataset.richtung);
+    if (i < 0 || j < 0 || j >= reihe.length) return;
+    [reihe[i], reihe[j]] = [reihe[j], reihe[i]];
+    e2.hotelBildReihe ??= {};
+    e2.hotelBildReihe[name] = reihe;
+    ctx.speichereEigene();
+    ctx.vibriere();
+    ctx.render();
+  },
+
 
   'tag-speichern': (el, ctx) => {
     const form = document.querySelector('[data-tag-form]');
