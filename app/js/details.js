@@ -10,6 +10,7 @@ import {
 } from './anpassungen.js';
 import { fotoAufnehmen } from './tagebuch.js';
 import { bordkarte, hotelKarte } from './visuell.js';
+import { hotelInfo, hotelBilder, titelBild, hotelKopfzeile, hotelAbschnitte } from './hotel.js';
 import { ikon } from './ikonen.js';
 
 function feld(name, label, wert, { mehrzeilig = false, typ = 'text', platzhalter = '', extra = '' } = {}) {
@@ -56,13 +57,21 @@ export function seiteUnterkuenfte(daten, eigene) {
     titel: 'Unterkünfte',
     zurueck: '#mehr',
     html: liste0.length ? `<div class="hotelkarten">${liste0.map((u) => {
-      const det = unterkunftDetails(eigene, u.name);
-      const unter = [det.checkin && `Check-in ${det.checkin}`, det.zimmer && `Zimmer ${det.zimmer}`].filter(Boolean).join(' · ');
-      return hotelKarte(u, ortInfo(daten, u.p), hotelFotos(eigene, u.name)[0], unter);
+      const det = { ...hotelBasis(daten, u.name), ...unterkunftDetails(eigene, u.name) };
+      const info = hotelInfo(daten, u.name);
+      const unter = [info.bewertung?.note && `★ ${String(info.bewertung.note).replace('.', ',')}`, det.checkin && `Check-in ${det.checkin}`, det.zimmer && `Zimmer ${det.zimmer}`].filter(Boolean).join(' · ');
+      return hotelKarte(u, ortInfo(daten, u.p), titelBild(daten, eigene, u.name), unter);
     }).join('')}</div>
       <p class="leise klein abstand-klein">Tippe auf ein Hotel, um Fotos, Adresse, Zimmer und Check-in-Zeiten zu ergänzen.</p>`
       : leer('Keine Unterkünfte im Fahrplan.'),
   };
+}
+
+/** Grunddaten aus dem Steckbrief (Reisedaten) – deine eigenen Angaben haben Vorrang. */
+export function hotelBasis(daten, name) {
+  const i = hotelInfo(daten, name);
+  return Object.fromEntries(Object.entries({ adresse: i.adresse, telefon: i.telefon, checkin: i.checkin, checkout: i.checkout, zimmer: i.zimmer, mail: i.mail })
+    .filter(([, v]) => typeof v === 'string' && v));
 }
 
 /** Kompakte Anzeige der Hotel-Details (für Tagesseite & Unterkunftsseite). */
@@ -71,6 +80,7 @@ export function unterkunftZeilen(name, det, ortName = '') {
     det.adresse ? { href: mapsLink(`${det.adresse}`), extern: true, icon: '📍', titel: det.adresse, unter: 'In Google Maps öffnen' }
       : { href: mapsLink(`${name} ${ortName}`), extern: true, icon: '📍', titel: 'In Google Maps öffnen' },
     det.telefon ? { href: `tel:${det.telefon.replace(/[^\d+]/g, '')}`, icon: '📞', titel: det.telefon, unter: 'Anrufen', pfeil: '' } : null,
+    det.mail ? { href: `mailto:${det.mail}`, icon: 'beleg', titel: det.mail, unter: 'E-Mail ans Hotel', pfeil: '' } : null,
     det.zimmer ? { icon: '🚪', titel: `Zimmer ${det.zimmer}` } : null,
     det.checkin || det.checkout ? { icon: '🔑', titel: [det.checkin && `Check-in ${det.checkin}`, det.checkout && `Check-out ${det.checkout}`].filter(Boolean).join(' · ') } : null,
     det.buchung ? { icon: '🔖', titel: det.buchung, unter: 'Buchungsnummer' } : null,
@@ -83,20 +93,22 @@ export function bilderSuche(name, ortName) {
   return `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(`${name} ${ortName} Hotel`)}`;
 }
 
-function galerie(eigene, name) {
+function galerie(daten, eigene, name) {
   const fotos = hotelFotos(eigene, name);
+  const bilder = hotelBilder(hotelInfo(daten, name));
   const neu = `
     <label class="galerie__neu" aria-label="Fotos hinzufügen">
       <input type="file" id="hotel-foto" accept="image/*" multiple hidden data-hotel="${e(name)}">
       ${ikon('plus')}<span>${fotos.length ? 'Mehr Fotos' : 'Fotos hinzufügen'}</span>
-      ${fotos.length ? '' : '<small>z. B. Screenshots von Booking oder eigene Bilder</small>'}
+      ${fotos.length || bilder.length ? '' : '<small>z. B. Screenshots von Booking oder eigene Bilder</small>'}
     </label>`;
   return `
-    <div class="galerie${fotos.length ? '' : ' galerie--leer'}">
+    <div class="galerie${fotos.length || bilder.length ? '' : ' galerie--leer'}">
+      ${bilder.map((src, i) => `<button class="galerie__bild" data-aktion="bild-zeigen" data-hotel="${e(name)}" data-nr="${i}" aria-label="Bild ansehen"><img src="${src}" alt=""></button>`).join('')}
       ${fotos.map((id) => `<button class="galerie__bild" data-aktion="foto-zeigen" data-id="${e(id)}" data-hotel="${e(name)}" aria-label="Foto ansehen"><img data-foto="${e(id)}" alt=""></button>`).join('')}
       ${neu}
     </div>
-    ${fotos.length > 1 ? `<p class="galerie__hinweis">${fotos.length} Fotos · zur Seite wischen</p>` : ''}`;
+    ${fotos.length + bilder.length > 1 ? `<p class="galerie__hinweis">${fotos.length + bilder.length} Fotos · zur Seite wischen</p>` : ''}`;
 }
 
 export function seiteUnterkunft(daten, eigene, name, bearbeiten) {
@@ -116,13 +128,17 @@ export function seiteUnterkunft(daten, eigene, name, bearbeiten) {
     };
   }
   const hatDetails = Object.values(det).some(Boolean);
+  const info = hotelInfo(daten, name);
+  const alles = { ...hotelBasis(daten, name), ...det };
   return {
     titel: 'Unterkunft',
     zurueck: '#unterkuenfte',
     html: `
-      ${galerie(eigene, name)}
+      ${galerie(daten, eigene, name)}
       ${held({ label: u ? `${formatTag(u.von)} – ${formatTag(u.bis)} · ${u.naechte} ${u.naechte === 1 ? 'Nacht' : 'Nächte'}` : '', titel: name, unterHtml: u ? `<span class="punkt" style="--ort:${ort.farbe}"></span>${e(ort.name)}` : '' })}
-      ${abschnitt('', liste(unterkunftZeilen(name, det, ort.name)))}
+      ${hotelKopfzeile(info)}
+      ${abschnitt('', liste(unterkunftZeilen(name, { ...alles, checkin: info.checkin ? '' : alles.checkin, checkout: info.checkout ? '' : alles.checkout }, ort.name)))}
+      ${hotelAbschnitte({ ...info, checkin: alles.checkin, checkout: alles.checkout, zimmer: alles.zimmer })}
       ${abschnitt('', liste([
         { href: `#unterkunft/${encodeURIComponent(name)}/bearbeiten`, icon: 'notiz', farbe: 'blau', titel: hatDetails ? 'Details bearbeiten' : 'Zimmer, Adresse, Telefon ergänzen' },
         { href: bilderSuche(name, ort.name), extern: true, icon: 'teilen', farbe: 'grau', titel: 'Fotos im Netz ansehen', unter: 'Öffnet die Google-Bildersuche' },
@@ -245,6 +261,17 @@ function fluege(ctx) {
 }
 
 export const detailAktionen = {
+  'bild-zeigen': (el, ctx) => {
+    const src = hotelBilder(hotelInfo(ctx.daten(), el.dataset.hotel))[Number(el.dataset.nr)];
+    if (!src) return;
+    const ov = document.createElement('div');
+    ov.className = 'fotoansicht';
+    ov.innerHTML = `<img src="${src}" alt=""><div class="fotoansicht__leiste"><button class="knopf" data-fa="zu">Schließen</button></div>`;
+    history.pushState({ foto: true }, '');
+    window.addEventListener('popstate', () => ov.remove(), { once: true });
+    ov.addEventListener('click', () => history.back());
+    document.body.append(ov);
+  },
   'tag-speichern': (el, ctx) => {
     const form = document.querySelector('[data-tag-form]');
     const d = form.dataset.tagForm;

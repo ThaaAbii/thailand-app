@@ -66,3 +66,17 @@ test('Hotels mit Fotos und Bordkarten-Seiten', () => {
   assert.match(seiteUnterkunft(demo, {}, name, true).html, /data-unterkunft-form/);
   assert.ok(!/undefined|NaN/.test(seiteFluege(demo, { fluege: [{ id: 'a', d: '2026-11-20', nummer: 'PG191', von: 'BKK', nach: 'USM', abflug: '19:15', ankunft: '20:25' }] }, new Date()).html));
 });
+
+test('Hotel-Steckbrief aus den Reisedaten', async () => {
+  const { hotelInfo, titelBild, hotelAbschnitte } = await import('../app/js/hotel.js');
+  const bild = 'data:image/jpeg;base64,AAAA';
+  const daten = { ...demo, hotels: { "Ban's Diving Resort": { bewertung: { note: 9 }, bilder: [bild, 'javascript:alert(1)'], preis: [{ was: 'Zimmer', betrag: 10 }], bezahlt: 10, ausstattung: [{ gruppe: 'Haus', punkte: ['Pool'] }] } } };
+  assert.equal(hotelInfo(daten, "Ban's Diving Resort – Dormitory").bewertung.note, 9);
+  assert.deepEqual(hotelInfo(daten, 'Unbekannt'), {});
+  assert.deepEqual(titelBild(daten, {}, "Ban's Diving Resort – Dormitory"), { src: bild });
+  assert.deepEqual(titelBild(daten, { hotelFotos: { "Ban's Diving Resort – Dormitory": ['f9'] } }, "Ban's Diving Resort – Dormitory"), { id: 'f9' });
+  const html = hotelAbschnitte(hotelInfo(daten, "Ban's Diving Resort"));
+  assert.match(html, /Preisdetails/);
+  assert.match(html, /Pool/);
+  assert.ok(!/javascript:/.test(html));
+});

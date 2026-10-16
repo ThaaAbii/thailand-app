@@ -4,7 +4,8 @@ import { e, ortInfo, zeilen } from './ui.js';
 import { liste, karte, abschnitt, held, leer } from './bausteine.js';
 import { gueltigeAusgaben, inThb, formatThb } from './ausgabenlogik.js';
 import { fluegeAm, unterkunftDetails } from './anpassungen.js';
-import { unterkunftZeilen, hotelFotos } from './details.js';
+import { unterkunftZeilen, hotelBasis } from './details.js';
+import { titelBild, bildTag } from './hotel.js';
 import { bordkarte } from './visuell.js';
 
 /** Tage nach Station gliedern; Reisetage hängen an der vorherigen Station. */
@@ -34,7 +35,7 @@ export function seiteTag(daten, eigene, jetzt, d) {
   const vor = ph.tage[i - 1];
   const nach = ph.tage[i + 1];
   const fluege = fluegeAm(eigene, d);
-  const det = stay ? unterkunftDetails(eigene, stay) : {};
+  const det = stay ? { ...hotelBasis(daten, stay), ...unterkunftDetails(eigene, stay) } : {};
   const geaendert = !!eigene?.tagAenderungen?.[d];
   const schritte = zeilen(t.tr);
   const ci = zeilen(t.ci);
@@ -59,8 +60,8 @@ export function seiteTag(daten, eigene, jetzt, d) {
       })}
       ${ablauf ? karte(ablauf, 'karte--text') : ''}
       ${fluege.length ? abschnitt('Flug', `<div class="bordkarten">${fluege.map((f) => bordkarte(f, jetzt)).join('')}</div>`) : ''}
-      ${stay && hotelFotos(eigene, stay)[0] ? abschnitt('Unterkunft', `<a class="bildkarte" href="#unterkunft/${encodeURIComponent(stay)}"><img data-foto="${e(hotelFotos(eigene, stay)[0])}" alt=""></a>`) : ''}
-      ${stay ? abschnitt(hotelFotos(eigene, stay)[0] ? '' : 'Unterkunft', liste([
+      ${stay && titelBild(daten, eigene, stay) ? abschnitt('Unterkunft', `<a class="bildkarte" href="#unterkunft/${encodeURIComponent(stay)}">${bildTag(titelBild(daten, eigene, stay))}</a>`) : ''}
+      ${stay ? abschnitt(titelBild(daten, eigene, stay) ? '' : 'Unterkunft', liste([
         { href: `#unterkunft/${encodeURIComponent(stay)}`, titelHtml: `<b>${e(stay)}</b>`, unter: [det.zimmer && `Zimmer ${det.zimmer}`, det.checkin && `Check-in ${det.checkin}`, det.checkout && `Check-out ${det.checkout}`].filter(Boolean).join(' · ') },
         ...unterkunftZeilen(stay, det, ort.name).filter((z) => z && !/^🚪|^🔑/.test(z.icon ?? '')),
         { href: `#unterkunft/${encodeURIComponent(stay)}/bearbeiten`, titel: Object.values(det).some(Boolean) ? 'Hotel-Details bearbeiten' : 'Zimmer, Adresse, Telefon ergänzen', klasse: 'zeile--aktion' },
