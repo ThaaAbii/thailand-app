@@ -146,7 +146,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font: 400 16px/1.45 var(--schrift);
+  font: 400 17px/1.42 var(--schrift);
   font-feature-settings: "cv11", "ss03";
   letter-spacing: -0.006em;
   -webkit-font-smoothing: antialiased;
@@ -352,24 +352,22 @@ a.kachel:active { transform: scale(0.98); }
 /* ---------- Plan: Heute-Karte ---------- */
 .heutekarte {
   position: relative; overflow: hidden;
-  padding: 18px 18px 6px; border-radius: var(--radius-gross);
+  padding: 20px 20px 6px; border-radius: 22px;
   background: var(--karte); box-shadow: var(--schatten-hoch);
 }
-.heutekarte::before { content: ""; position: absolute; left: 0; top: 0; right: 0; height: 4px; background: var(--ort, var(--akzent)); }
 .heutekarte__kopf { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
 .marke {
-  display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: 99px;
-  background: color-mix(in srgb, var(--ort, var(--akzent)) 13%, transparent);
-  color: color-mix(in srgb, var(--ort, var(--akzent)) 85%, var(--text));
+  display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 11px; border-radius: 99px;
+  background: var(--flaeche); color: var(--leise);
   font-size: 0.78rem; font-weight: 700; letter-spacing: 0.01em; white-space: nowrap;
 }
 .heutekarte__datum { font-size: 0.84rem; color: var(--leise); font-weight: 500; }
-.heutekarte__titel { font-size: 1.5rem; line-height: 1.2; font-weight: 700; letter-spacing: -0.025em; }
+.heutekarte__titel { font-size: 1.6rem; line-height: 1.18; font-weight: 700; letter-spacing: -0.03em; }
 .heutekarte__zahl { display: flex; align-items: baseline; gap: 8px; margin-top: 2px; font-size: 3.6rem; line-height: 1; font-weight: 700; letter-spacing: -0.05em; font-variant-numeric: tabular-nums; }
 .heutekarte__zahl small { font-size: 1.15rem; font-weight: 600; letter-spacing: -0.01em; color: var(--leise); }
 .heutekarte__unter { margin-top: 6px; color: var(--leise); font-size: 0.92rem; }
-.heutekarte__zeilen { margin: 12px -18px 0; border-top: 0.5px solid var(--linie-2); }
-.heutekarte__zeilen .zeile { padding-left: 18px; padding-right: 18px; }
+.heutekarte__zeilen { margin: 14px -20px 0; border-top: 0.5px solid var(--linie-2); }
+.heutekarte__zeilen .zeile { padding-left: 20px; padding-right: 20px; }
 .heutekarte__zeilen .zeile + .zeile::before { left: 60px; }
 .heutekarte__zeilen .zeile--check + .zeile::before { left: 18px; }
 .infozeile { align-items: flex-start; }
@@ -393,8 +391,7 @@ a.kachel:active { transform: scale(0.98); }
 
 .tagz {
   position: relative; display: flex; gap: 12px; align-items: flex-start;
-  padding: 12px 14px 12px 12px; color: var(--text);
-  box-shadow: inset 3px 0 0 var(--ort, var(--blass));
+  padding: 14px 16px 14px 12px; color: var(--text);
   transition: background-color 0.12s;
 }
 .tagz:active { background: var(--flaeche-2); }
@@ -418,6 +415,78 @@ a.kachel:active { transform: scale(0.98); }
 .tagz--vorbei .tagz__inhalt, .tagz--vorbei .tagz__datum { opacity: 0.45; }
 .heute-marke { flex: none; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; color: #fff; background: var(--akzent); border-radius: 99px; padding: 2px 7px; }
 
+/* ---------- Bordkarten (Flüge) ---------- */
+.bordkarten { display: flex; flex-direction: column; gap: 14px; }
+.bordkarte {
+  position: relative; display: block; width: 100%; padding: 0; border: 0; text-align: left; color: var(--text);
+  border-radius: 22px; background: var(--karte); box-shadow: var(--schatten-hoch); cursor: pointer;
+}
+.bordkarte:active { transform: scale(0.99); }
+.bordkarte__oben { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 16px 20px 0; }
+.bordkarte__airline { font-size: 0.86rem; font-weight: 600; color: var(--leise); }
+.bordkarte__nr { font-size: 0.86rem; font-weight: 700; letter-spacing: 0.04em; color: var(--text); }
+.bordkarte__route { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; padding: 10px 20px 18px; }
+.bordkarte__ort { display: flex; flex-direction: column; gap: 1px; min-width: 70px; }
+.bordkarte__ort--ziel { align-items: flex-end; text-align: right; }
+.bordkarte__ort b { font-size: 2.3rem; line-height: 1.05; font-weight: 700; letter-spacing: -0.03em; }
+.bordkarte__ort span { font-size: 0.8rem; color: var(--leise); white-space: nowrap; }
+.bordkarte__ort time { margin-top: 4px; font-size: 1.15rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.bordkarte__offen { color: var(--linie-2); }
+.bordkarte__ort sup { margin-left: 2px; font-size: 0.68rem; font-weight: 700; color: var(--orange); }
+.bordkarte__mitte { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; color: var(--blass); }
+.bordkarte__linie { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; height: 22px; }
+.bordkarte__linie::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; border-top: 1.5px dashed var(--linie-2); }
+.bordkarte__flieger { position: relative; width: 22px; height: 22px; padding: 0 4px; box-sizing: content-box; background: var(--karte); color: var(--akzent); transform: rotate(45deg); }
+.bordkarte__mitte small { font-size: 0.76rem; font-weight: 600; white-space: nowrap; }
+.bordkarte__unten {
+  position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px;
+  padding: 14px 20px 16px; border-top: 1.5px dashed var(--linie-2);
+}
+.bordkarte__unten::before, .bordkarte__unten::after { content: ""; position: absolute; top: -10px; width: 20px; height: 20px; border-radius: 50%; background: var(--bg); }
+.bordkarte__unten::before { left: -10px; }
+.bordkarte__unten::after { right: -10px; }
+.bordkarte__unten div { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.bordkarte__unten small { font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--blass); }
+.bordkarte__unten b { font-size: 0.92rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bordkarte--vorschlag { background: transparent; box-shadow: inset 0 0 0 1.5px var(--linie-2); }
+.bordkarte--vorschlag .bordkarte__flieger { background: var(--bg); }
+.bordkarte__uebernehmen { grid-column: span 3; align-items: flex-end; justify-content: center; }
+.bordkarte__uebernehmen b { color: var(--akzent); }
+
+/* ---------- Hotels mit Fotos ---------- */
+.hotelkarten { display: grid; gap: 12px; }
+.hotelkarte { display: block; overflow: hidden; border-radius: 22px; background: var(--karte); box-shadow: var(--schatten-hoch); color: var(--text); }
+.hotelkarte:active { transform: scale(0.99); }
+.hotelkarte__bild { position: relative; display: block; aspect-ratio: 16 / 9; background: var(--flaeche); }
+.hotelkarte__bild img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.hotelkarte__leer { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--blass);
+  background: linear-gradient(160deg, color-mix(in srgb, var(--ort) 10%, var(--flaeche)), var(--flaeche)); }
+.hotelkarte__leer .ikon { width: 44px; height: 44px; stroke-width: 1.2; }
+.hotelkarte__marke { position: absolute; left: 12px; bottom: 12px; padding: 5px 11px; border-radius: 99px; background: rgb(255 255 255 / 88%); color: #0f0f12; font-size: 0.78rem; font-weight: 700; -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+.hotelkarte__text { display: flex; flex-direction: column; gap: 2px; padding: 14px 18px 16px; }
+.hotelkarte__text b { font-size: 1.15rem; font-weight: 700; letter-spacing: -0.02em; }
+.hotelkarte__text span { font-size: 0.9rem; color: var(--leise); }
+.hotelkarte--ohne { display: flex; align-items: center; border-radius: var(--radius); box-shadow: var(--schatten); }
+.hotelkarte--ohne .hotelkarte__bild { flex: none; width: 76px; height: 76px; aspect-ratio: auto; margin: 12px 0 12px 12px; border-radius: 14px; overflow: hidden; }
+.hotelkarte--ohne .hotelkarte__leer .ikon { width: 30px; height: 30px; }
+.hotelkarte--ohne .hotelkarte__marke { display: none; }
+.hotelkarte--ohne .hotelkarte__text { padding: 12px 16px; }
+.hotelkarte--ohne .hotelkarte__text b { font-size: 1.04rem; }
+.galerie { display: flex; gap: 10px; margin: 6px calc(-1 * var(--rand)) 10px; padding: 0 var(--rand); overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding: 0 var(--rand); }
+.galerie__bild, .galerie__neu { flex: 0 0 86%; aspect-ratio: 4 / 3; scroll-snap-align: start; border: 0; padding: 0; border-radius: 22px; overflow: hidden; background: var(--flaeche-2); cursor: pointer; }
+.galerie__bild img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.galerie__neu { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 16px; background: var(--karte); box-shadow: var(--schatten), inset 0 0 0 1.5px var(--linie-2); color: var(--akzent); font-weight: 600; text-align: center; }
+.galerie__bild + .galerie__neu { flex-basis: 40%; }
+.galerie--leer .galerie__neu { flex-basis: 100%; aspect-ratio: 16 / 9; }
+.galerie__neu .ikon { width: 30px; height: 30px; }
+.galerie__neu small { font-size: 0.8rem; font-weight: 500; color: var(--leise); }
+.galerie__hinweis { margin: -4px 6px 6px; font-size: 0.8rem; color: var(--blass); }
+.bildkarte { display: block; overflow: hidden; aspect-ratio: 16 / 9; border-radius: 22px; box-shadow: var(--schatten-hoch); margin-bottom: 12px; }
+.bildkarte img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.heutekarte__bild { display: block; margin: -20px -20px 16px; aspect-ratio: 16 / 8; overflow: hidden; }
+.heutekarte__bild img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.knopf .ikon { width: 20px; height: 20px; stroke-width: 2.2; }
+
 /* Plan als echte Tabelle (Querformat-Gefühl) */
 .tabelle-rahmen { margin: 0 calc(-1 * var(--rand)); padding: 0 var(--rand); overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .tabelle {
@@ -430,7 +499,7 @@ a.kachel:active { transform: scale(0.98); }
 .tabelle th { position: relative; background: var(--flaeche); font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--leise); white-space: nowrap; }
 .tabelle tr:last-child td { border-bottom: 0; }
 .tabelle td { white-space: pre-line; min-width: 150px; }
-.tabelle .tabelle__datum { position: sticky; left: 0; z-index: 1; min-width: 72px; width: 72px; background: var(--karte); box-shadow: inset -0.5px 0 0 var(--linie-2), inset 3px 0 0 var(--ort, transparent); white-space: nowrap; font-weight: 600; font-variant-numeric: tabular-nums; }
+.tabelle .tabelle__datum { position: sticky; left: 0; z-index: 1; min-width: 72px; width: 72px; background: var(--karte); box-shadow: inset -0.5px 0 0 var(--linie-2); white-space: nowrap; font-weight: 600; font-variant-numeric: tabular-nums; }
 .tabelle th.tabelle__datum { background: var(--flaeche); box-shadow: inset -0.5px 0 0 var(--linie-2); }
 .tabelle .tabelle__datum small { display: block; font-weight: 500; color: var(--blass); font-size: 0.72rem; }
 .tabelle .tabelle__ort { min-width: 118px; white-space: nowrap; font-weight: 500; }
@@ -456,7 +525,8 @@ a.kachel:active { transform: scale(0.98); }
 .schritte li:last-child { padding-bottom: 0; }
 .schritte--leise li::before { border-color: var(--blass); }
 
-.notiz { margin-top: 14px; padding: 13px 16px; border-radius: var(--radius); background: var(--karte); box-shadow: inset 3px 0 0 var(--orange-voll), var(--schatten); color: var(--text); line-height: 1.5; }
+.notiz { margin-top: 14px; padding: 14px 16px; border-radius: var(--radius); background: var(--karte); box-shadow: var(--schatten); color: var(--text); line-height: 1.5; }
+.notiz::before { content: "Notiz"; display: block; margin-bottom: 4px; font-size: 0.74rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--blass); }
 .hinweiszeile { margin-top: 10px; padding: 0 4px; color: var(--leise); }
 .hinweiszeile b { color: var(--text); font-weight: 600; }
 .uhrzeile { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px 18px; margin-top: 28px; font-size: 0.84rem; color: var(--blass); }
@@ -536,9 +606,69 @@ a.kachel:active { transform: scale(0.98); }
 details summary { cursor: pointer; color: var(--akzent); margin-top: 6px; }
 
 /* ---------- Geld ---------- */
-.geldkarte { padding: 18px; border-radius: var(--radius-gross); background: var(--karte); box-shadow: var(--schatten-hoch); }
+.geldkarte { padding: 20px; border-radius: 22px; background: var(--karte); box-shadow: var(--schatten-hoch); }
 .geldkarte .balken { margin-top: 14px; }
 .geldkarte .leise.klein { margin-top: 8px; }
+.geldkarte .held__zahl { font-size: 2.3rem; }
+.geldkarte__oben { display: flex; align-items: center; gap: 20px; }
+.geldkarte__zahlen { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 0.92rem; color: var(--leise); }
+.geldkarte__zahlen small { font-size: 0.8rem; font-weight: 600; }
+.geldkarte__betrag { font-size: 1.85rem; line-height: 1.15; font-weight: 700; letter-spacing: -0.035em; color: var(--text); font-variant-numeric: tabular-nums; }
+.geldkarte__zahlen .text-gruen, .geldkarte__zahlen .text-orange, .geldkarte__zahlen .text-rot { font-weight: 600; }
+.geldkarte__woche { margin-top: 18px; padding-top: 16px; border-top: 0.5px solid var(--linie-2); }
+
+/* Fortschrittsring */
+.ring { position: relative; flex: none; width: 112px; height: 112px; }
+.ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring circle { fill: none; stroke-width: 13; stroke-linecap: round; }
+.ring__spur { stroke: var(--flaeche-2); }
+.ring__wert { stroke: var(--gruen-voll); transition: stroke-dasharray 0.6s ease; }
+.ring--orange .ring__wert { stroke: var(--orange-voll); }
+.ring--rot .ring__wert { stroke: var(--rot-voll); }
+.ring__inhalt { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+.ring__inhalt b { font-size: 1.45rem; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.ring__inhalt small { font-size: 0.8rem; font-weight: 600; color: var(--leise); margin-left: 1px; }
+
+/* Mini-Säulen (7 Tage) */
+.saeulen { position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; height: 96px; }
+.saeulen__grenze { position: absolute; left: 0; right: 0; bottom: calc(20px + (100% - 20px) * var(--grenze)); border-top: 1px dashed var(--blass); opacity: 0.6; }
+.saeule { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
+.saeule__spur { flex: 1; width: 100%; max-width: 26px; display: flex; align-items: flex-end; border-radius: 6px; background: var(--flaeche); overflow: hidden; }
+.saeule__wert { width: 100%; border-radius: 6px; background: var(--gruen-voll); }
+.saeule__wert--orange { background: var(--orange-voll); }
+.saeule__wert--rot { background: var(--rot-voll); }
+.saeule small { font-size: 0.68rem; font-weight: 600; color: var(--blass); text-transform: uppercase; }
+.saeule--aktiv small { color: var(--text); }
+
+/* Budgetplanung */
+.planbox { margin-top: 16px; padding: 20px; border-radius: 22px; background: var(--karte); box-shadow: var(--schatten-hoch); }
+.planbox__zahl { display: flex; align-items: baseline; gap: 8px; margin-top: 10px; font-size: 2.6rem; line-height: 1; font-weight: 700; letter-spacing: -0.045em; font-variant-numeric: tabular-nums; }
+.planbox__zahl small { font-size: 1rem; font-weight: 600; letter-spacing: -0.01em; color: var(--leise); }
+.planbox__unter { margin-top: 8px; color: var(--leise); font-size: 0.92rem; }
+.planbox__hinweis { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: var(--orange-bg); color: var(--orange); font-size: 0.86rem; }
+.optionen { display: flex; flex-direction: column; gap: 10px; }
+.option { position: relative; display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: var(--radius); background: var(--karte); box-shadow: var(--schatten); cursor: pointer; transition: box-shadow 0.15s; }
+.option input { position: absolute; opacity: 0; pointer-events: none; }
+.option--gewaehlt { box-shadow: inset 0 0 0 2px var(--akzent), var(--schatten); }
+.option:active { transform: scale(0.99); }
+.option__links { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.option__links small { font-size: 0.74rem; font-weight: 600; color: var(--blass); text-transform: uppercase; letter-spacing: 0.04em; }
+.option--gewaehlt .option__links small { color: var(--akzent); }
+.option__links b { font-weight: 600; }
+.option__links > span { font-size: 0.84rem; color: var(--leise); }
+.option__rechts { flex: none; display: flex; flex-direction: column; align-items: flex-end; }
+.option__rechts b { font-size: 1.2rem; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.option__rechts small { font-size: 0.78rem; color: var(--leise); font-variant-numeric: tabular-nums; }
+.posten { flex-wrap: wrap; gap: 8px; padding-top: 8px; padding-bottom: 8px; }
+.posten__was, .posten__betrag, .wertzeile__eingabe { min-width: 0; height: 40px; padding: 0 10px; border: 0; border-radius: 9px; background: var(--flaeche); color: var(--text); font-size: 0.94rem; }
+.posten__was { flex: 1 1 140px; }
+.posten__betrag { flex: 0 0 90px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.posten__was:focus, .posten__betrag:focus, .wertzeile__eingabe:focus { outline: none; box-shadow: inset 0 0 0 2px var(--akzent); background: var(--karte); }
+.posten__info { flex: 1 0 100%; margin-top: -2px; padding: 0 10px; font-size: 0.78rem; color: var(--blass); }
+.wertzeile__feld { flex: none; display: inline-flex; align-items: center; gap: 6px; color: var(--leise); font-size: 0.9rem; }
+.wertzeile__eingabe { width: 96px; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.summenzeile b { font-size: 1.2rem; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.summenzeile { background: var(--flaeche); }
 .betrag { display: flex; gap: 12px; align-items: center; padding: 10px 16px; border-radius: var(--radius); background: var(--karte); box-shadow: var(--schatten); }
 .betrag__feld {
   flex: 1; min-width: 0; padding: 4px 0; border: 0; border-radius: 0;
@@ -690,7 +820,7 @@ details summary { cursor: pointer; color: var(--akzent); margin-top: 6px; }
 .station {
   display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; padding: 12px 16px; min-height: 56px;
   border: 0; border-radius: var(--radius); background: var(--karte); color: var(--text); text-align: left; cursor: pointer;
-  box-shadow: inset 3px 0 0 var(--ort), var(--schatten);
+  box-shadow: var(--schatten);
 }
 .station--heute { background: var(--akzent-hell); }
 .station__weiter { margin: 6px 0 6px 20px; padding-left: 12px; border-left: 1.5px dashed var(--linie-2); color: var(--blass); min-height: 22px; font-size: 0.84rem; }

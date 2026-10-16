@@ -12,6 +12,7 @@ import { seiteBuchungsBlatt } from './buchungen.js';
 import { seiteVersicherung } from './versicherung.js';
 import { seiteAusgaben, ausgabenAktionen, ausgabenAenderung, ausgabenEingabe, aktualisiereUmrechnung } from './ausgaben.js';
 import { kursAusAntwort, kursVeraltet } from './ausgabenlogik.js';
+import { budgetAktionen, budgetAenderung } from './budget.js';
 import { seiteKarte } from './karte.js';
 import { seiteThai, zeigeVollbild } from './thai.js';
 import { seiteNotfall } from './notfall.js';
@@ -565,7 +566,7 @@ const APP_AKTIONEN = {
     zeigeVollbild(el.dataset.de, el.dataset.thai, el.dataset.laut);
   },
 };
-const MODUL_AKTIONEN = [listenAktionen, ausgabenAktionen, ideenAktionen, tagebuchAktionen, detailAktionen, aufgabenAktionen];
+const MODUL_AKTIONEN = [listenAktionen, ausgabenAktionen, ideenAktionen, tagebuchAktionen, detailAktionen, aufgabenAktionen, budgetAktionen];
 
 inhalt.addEventListener('click', (ev) => {
   // Tabellenzeilen sind ganz antippbar
@@ -611,6 +612,7 @@ inhalt.addEventListener('change', async (ev) => {
     zaehleFotos();
     return;
   }
+  if (state.route === 'geld' && budgetAenderung(t, ctx)) return;
   if (state.route === 'geld' && ausgabenAenderung(t, ctx)) return;
   if (state.route === 'tagebuch' && await tagebuchAenderung(t, ctx)) {
     zaehleFotos();

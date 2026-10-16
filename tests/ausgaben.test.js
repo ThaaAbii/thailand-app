@@ -31,7 +31,9 @@ test('Umrechnung mit gespeichertem Kurs', () => {
 
 test('Tagesbudget aus Reisedaten, eigene Einstellung gewinnt', () => {
   assert.equal(tagesbudgetEur({ budget: { tagesbudgetPlan: 'Option 1: 1.133,49 € (ca. 52 €/Tag), Reserve' } }, {}), 52);
-  assert.equal(tagesbudgetEur(demo, {}), 50);
+  // Demo hat eine Budgetplanung mit Option 2: (600 + 300 − 350 + 300) / 22
+  assert.equal(tagesbudgetEur(demo, {}), 38.64);
+  assert.equal(tagesbudgetEur(demo, { budgetPlan: { gewaehlt: 3 } }), 52.27);
   assert.equal(tagesbudgetEur(demo, { einstellungen: { tagesbudget: 60 } }), 60);
   assert.equal(tagesbudgetEur({}, {}), 52);
 });

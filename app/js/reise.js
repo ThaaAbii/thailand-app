@@ -3,9 +3,9 @@ import { reisePhase, tagLabel, formatTag } from './zeit.js';
 import { e, ortInfo, zeilen } from './ui.js';
 import { liste, karte, abschnitt, held, leer } from './bausteine.js';
 import { gueltigeAusgaben, inThb, formatThb } from './ausgabenlogik.js';
-import { eintragVon } from './tagebuch.js';
 import { fluegeAm, unterkunftDetails } from './anpassungen.js';
-import { flugZeile, unterkunftZeilen } from './details.js';
+import { unterkunftZeilen, hotelFotos } from './details.js';
+import { bordkarte } from './visuell.js';
 
 /** Tage nach Station gliedern; Reisetage hängen an der vorherigen Station. */
 export function stationen(tage) {
@@ -31,7 +31,6 @@ export function seiteTag(daten, eigene, jetzt, d) {
   const stay = t.stay && !/flieger/i.test(t.stay) ? t.stay : null;
   const ausgaben = gueltigeAusgaben(eigene).filter((a) => a.d === d);
   const thb = ausgaben.reduce((s, a) => s + inThb(a), 0);
-  const tb = eintragVon(eigene, d);
   const vor = ph.tage[i - 1];
   const nach = ph.tage[i + 1];
   const fluege = fluegeAm(eigene, d);
@@ -47,13 +46,6 @@ export function seiteTag(daten, eigene, jetzt, d) {
     t.via ? `<div class="info"><h3 class="info__titel">Gebucht über</h3><p>${e(t.via)}</p></div>` : '',
   ].join('');
 
-  const tagebuchVorschau = tb && (tb.text?.trim() || tb.fotos?.length || tb.stimmung)
-    ? `<a class="tagebuch-vorschau" href="#tagebuch/${d}">
-        <span class="tagebuch-vorschau__kopf"><span>Tagebuch</span>${tb.stimmung ? `<span aria-hidden="true">${e(tb.stimmung)}</span>` : ''}</span>
-        ${tb.fotos?.length ? `<span class="tl__fotos">${tb.fotos.slice(0, 4).map((id) => `<img data-foto="${e(id)}" alt="">`).join('')}</span>` : ''}
-        ${tb.text?.trim() ? `<span class="tl__text">${e(tb.text.trim())}</span>` : ''}
-      </a>`
-    : '';
 
   return {
     titel: formatTag(d),
@@ -66,16 +58,15 @@ export function seiteTag(daten, eigene, jetzt, d) {
         farbe: ort.farbe,
       })}
       ${ablauf ? karte(ablauf, 'karte--text') : ''}
-      ${fluege.length ? abschnitt('Flug', liste(fluege.map((f) => flugZeile(f, jetzt)))) : ''}
-      ${stay ? abschnitt('Unterkunft', liste([
-        { titelHtml: `<b>${e(stay)}</b>`, unter: [det.zimmer && `Zimmer ${det.zimmer}`, det.checkin && `Check-in ${det.checkin}`, det.checkout && `Check-out ${det.checkout}`].filter(Boolean).join(' · ') },
+      ${fluege.length ? abschnitt('Flug', `<div class="bordkarten">${fluege.map((f) => bordkarte(f, jetzt)).join('')}</div>`) : ''}
+      ${stay && hotelFotos(eigene, stay)[0] ? abschnitt('Unterkunft', `<a class="bildkarte" href="#unterkunft/${encodeURIComponent(stay)}"><img data-foto="${e(hotelFotos(eigene, stay)[0])}" alt=""></a>`) : ''}
+      ${stay ? abschnitt(hotelFotos(eigene, stay)[0] ? '' : 'Unterkunft', liste([
+        { href: `#unterkunft/${encodeURIComponent(stay)}`, titelHtml: `<b>${e(stay)}</b>`, unter: [det.zimmer && `Zimmer ${det.zimmer}`, det.checkin && `Check-in ${det.checkin}`, det.checkout && `Check-out ${det.checkout}`].filter(Boolean).join(' · ') },
         ...unterkunftZeilen(stay, det, ort.name).filter((z) => z && !/^🚪|^🔑/.test(z.icon ?? '')),
         { href: `#unterkunft/${encodeURIComponent(stay)}/bearbeiten`, titel: Object.values(det).some(Boolean) ? 'Hotel-Details bearbeiten' : 'Zimmer, Adresse, Telefon ergänzen', klasse: 'zeile--aktion' },
       ])) : ''}
       ${t.note ? `<p class="notiz">${zeilen(t.note).map(e).join('<br>')}</p>` : ''}
-      ${tagebuchVorschau ? abschnitt('', karte(tagebuchVorschau)) : ''}
       ${abschnitt('', liste([
-        tagebuchVorschau ? null : { href: `#tagebuch/${d}`, icon: 'buch', farbe: 'lila', titel: 'Tagebuch schreiben' },
         { href: '#geld/liste', icon: 'geld', farbe: 'gruen', titel: 'Ausgaben an diesem Tag', wert: thb ? formatThb(thb) : '–' },
         { href: `#flug/neu/${d}`, icon: 'flug', farbe: 'indigo', titel: 'Flug hinzufügen' },
         { href: `#tag/${d}/bearbeiten`, icon: 'notiz', farbe: 'grau', titel: 'Tag bearbeiten', unter: 'Transport, Programm, Notiz … ändern' },

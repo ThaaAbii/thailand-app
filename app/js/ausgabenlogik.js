@@ -1,4 +1,5 @@
 // Rechenlogik für Ausgaben, Wechselkurs und Budget (ohne Anzeige, gut testbar).
+import { planWerte, optionen } from './budgetlogik.js';
 
 export const STANDARD_KURS = 37.9;
 export const STANDARD_BUDGET_EUR = 52;
@@ -32,10 +33,13 @@ function gueltigeZahl(x, min, max) {
   return Number.isFinite(n) && n >= min && n <= max ? n : null;
 }
 
-/** Tagesbudget in Euro: eigene Einstellung → „52 €/Tag“ aus den Reisedaten → 52. */
+/** Tagesbudget in Euro: eigene Einstellung → gewählte Option der Budgetplanung → „52 €/Tag“ aus den Reisedaten → 52. */
 export function tagesbudgetEur(daten, eigene) {
   const eigenes = gueltigeZahl(eigene?.einstellungen?.tagesbudget, 1, 10000);
   if (eigenes) return eigenes;
+  const plan = planWerte(daten, eigene);
+  const opt = plan.gewaehlt ? optionen(plan, 1).find((o) => o.nr === plan.gewaehlt) : null;
+  if (opt && opt.proTag > 0) return opt.proTag;
   const m = String(daten?.budget?.tagesbudgetPlan ?? '').match(/(\d+(?:[.,]\d+)?)\s*€\s*\/\s*Tag/);
   return m ? Number(m[1].replace(',', '.')) : STANDARD_BUDGET_EUR;
 }
