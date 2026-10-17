@@ -90,3 +90,14 @@ test('Bilder aus den Reisedaten lassen sich ausblenden', async () => {
   assert.deepEqual(titelBild(daten, eigene, 'H'), { src: b });
   assert.notEqual(bildKennung(a), bildKennung(b));
 });
+
+test('Hotel-Galerie: eigene Reihenfolge, Titelbild = erstes', async () => {
+  const { hotelGalerie, titelBild, bildKennung } = await import('../app/js/hotel.js');
+  const a = 'data:image/jpeg;base64,AAAA';
+  const daten = { hotels: { H: { bilder: [a] } } };
+  const eigene = { hotelFotos: { H: ['f1', 'f2'] } };
+  assert.deepEqual(hotelGalerie(daten, eigene, 'H').map((b) => b.key), ['f:f1', 'f:f2', `d:${bildKennung(a)}`]);
+  eigene.hotelBildReihe = { H: [`d:${bildKennung(a)}`, 'f:f2'] };
+  assert.deepEqual(hotelGalerie(daten, eigene, 'H').map((b) => b.key), [`d:${bildKennung(a)}`, 'f:f2', 'f:f1']);
+  assert.deepEqual(titelBild(daten, eigene, 'H'), { src: a });
+});

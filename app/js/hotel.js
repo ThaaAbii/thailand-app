@@ -33,12 +33,26 @@ export function sichtbareHotelBilder(daten, eigene, name) {
   return hotelBilder(hotelInfo(daten, name)).filter((b) => !weg.has(bildKennung(b)));
 }
 
-/** Titelbild: eigenes Foto zuerst, sonst Bild aus den Reisedaten. → { id } | { src } | null */
+/**
+ * Alle Bilder eines Hotels in deiner Reihenfolge: [{ key, id? , src? }].
+ * key: „f:<id>“ für eigene Fotos, „d:<kennung>“ für Bilder aus den Reisedaten.
+ * Ohne eigene Sortierung: eigene Fotos zuerst, dann die aus den Reisedaten.
+ */
+export function hotelGalerie(daten, eigene, name) {
+  const eigeneFotos = (Array.isArray(eigene?.hotelFotos?.[name]) ? eigene.hotelFotos[name] : []).filter((x) => typeof x === 'string');
+  const alle = [
+    ...eigeneFotos.map((id) => ({ key: `f:${id}`, id })),
+    ...sichtbareHotelBilder(daten, eigene, name).map((src) => ({ key: `d:${bildKennung(src)}`, src })),
+  ];
+  const reihe = Array.isArray(eigene?.hotelBildReihe?.[name]) ? eigene.hotelBildReihe[name] : [];
+  const rang = (k) => { const i = reihe.indexOf(k); return i < 0 ? reihe.length + alle.findIndex((x) => x.key === k) : i; };
+  return alle.sort((a, b) => rang(a.key) - rang(b.key));
+}
+
+/** Titelbild = erstes Bild der Galerie. → { id } | { src } | null */
 export function titelBild(daten, eigene, name) {
-  const eigeneFotos = eigene?.hotelFotos?.[name];
-  if (Array.isArray(eigeneFotos) && typeof eigeneFotos[0] === 'string') return { id: eigeneFotos[0] };
-  const b = sichtbareHotelBilder(daten, eigene, name)[0];
-  return b ? { src: b } : null;
+  const b = hotelGalerie(daten, eigene, name)[0];
+  return b ? (b.id ? { id: b.id } : { src: b.src }) : null;
 }
 
 export function bildTag(b) {
